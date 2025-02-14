@@ -1,13 +1,13 @@
 <template>
   <v-app>
     <v-main>
-      <HelloWorld />
+      <Homepage />
     </v-main>
-
-    <AppFooter />
   </v-app>
 </template>
 
 <script setup>
-  //
+import Homepage from "./pages/Homepage.vue";
+
+//
 </script>

@@ -1,3 +1,11 @@
-<script setup></script>
+<script setup>
+import Dashboard from "@/components/Dashboard.vue";
+import Footer from "@/components/Footer.vue";
+import Navigation from "@/components/Navigation.vue";
+</script>
 
-<template></template>
+<template>
+  <Navigation />
+  <Dashboard />
+  <Footer />
+</template>
