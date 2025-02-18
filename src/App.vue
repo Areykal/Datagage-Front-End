@@ -1,13 +1,11 @@
 <template>
   <v-app>
     <v-main>
-      <Homepage />
+      <router-view />
     </v-main>
   </v-app>
 </template>
 
 <script setup>
-import Homepage from "./pages/Homepage.vue";
-
-//
+import { RouterView } from 'vue-router';
 </script>
