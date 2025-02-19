@@ -4,9 +4,22 @@
  * Automatically included in `./src/main.js`
  */
 
-// Plugins
-import vuetify from './vuetify'
+// Styles
+import "@mdi/font/css/materialdesignicons.css";
+import "vuetify/styles";
 
-export function registerPlugins (app) {
-  app.use(vuetify)
+// Plugins
+import { createVuetify } from "vuetify";
+import router from "../router";
+
+const vuetify = createVuetify({
+  theme: {
+    defaultTheme: "dark",
+  },
+});
+
+export function registerPlugins(app) {
+  app.use(vuetify).use(router);
 }
+
+export { router };

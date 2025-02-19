@@ -1,84 +1,73 @@
-<script setup>
-import { ref, onMounted } from 'vue';
-import { useAnalyticsStore } from '@/store/analytics';
-import Navigation from '@/components/Navigation.vue';
-
-const analytics = useAnalyticsStore;
-const months = ref(12);
-
-onMounted(() => {
-  analytics.fetchSalesAnalysis(months.value);
-});
-</script>
-
 <template>
-  <v-container>
+  <PageLayout
+    title="Analytics"
+    subtitle="Analyze your data insights"
+    :loading="loading"
+    :error="error"
+  >
     <v-row>
       <v-col cols="12">
-        <Navigation />
-      </v-col>
-    </v-row>
-    <v-row>
-      <v-col cols="12">
-        <v-card>
-          <v-card-title>Sales Analytics</v-card-title>
+        <v-card class="analytics-card">
+          <v-card-title>Analytics Dashboard</v-card-title>
           <v-card-text>
-            <v-select
-              v-model="months"
-              :items="[3, 6, 12, 24]"
-              label="Select Period (Months)"
-              @update:modelValue="analytics.fetchSalesAnalysis(months)"
-            ></v-select>
-
-            <v-alert
-              v-if="analytics.state.error"
-              type="error"
-              text="{{ analytics.state.error }}"
-            ></v-alert>
-
-            <v-progress-circular
-              v-if="analytics.state.loading"
-              indeterminate
-              color="primary"
-            ></v-progress-circular>
-
-            <template v-else-if="analytics.state.salesData.length">
-              <v-row>
-                <v-col
-                  v-for="(data, index) in analytics.state.salesData"
-                  :key="index"
-                  cols="12"
-                  md="4"
-                >
-                  <v-card>
-                    <v-card-title>{{
-                      new Date(data.month).toLocaleDateString("en-US", {
-                        month: "long",
-                        year: "numeric",
-                      })
-                    }}</v-card-title>
-                    <v-card-text>
-                      <p>Revenue: ${{ data.total_revenue }}</p>
-                      <p>Orders: {{ data.total_orders }}</p>
-                      <p>Customers: {{ data.unique_customers }}</p>
-                      <p>Avg Order: ${{ data.avg_order_value }}</p>
-                    </v-card-text>
-                  </v-card>
-                </v-col>
-              </v-row>
-
-              <v-card class="mt-4">
-                <v-card-title>Analysis</v-card-title>
-                <v-card-text>
-                  <p style="white-space: pre-line">
-                    {{ analytics.state.analysis }}
-                  </p>
-                </v-card-text>
-              </v-card>
-            </template>
+            <div
+              class="d-flex align-center justify-center"
+              style="height: 400px"
+            >
+              <v-icon size="64" color="primary" class="mr-4"
+                >mdi-chart-box-outline</v-icon
+              >
+              <div class="text-h6">Analytics features coming soon...</div>
+            </div>
           </v-card-text>
         </v-card>
       </v-col>
     </v-row>
-  </v-container>
+  </PageLayout>
 </template>
+
+<script setup>
+import { ref, onMounted } from "vue";
+import { useAnalyticsStore } from "@/store/analytics";
+import PageLayout from "@/components/PageLayout.vue";
+
+const analytics = useAnalyticsStore;
+const months = ref(12);
+const periodOptions = [
+  { title: "3 Months", value: 3 },
+  { title: "6 Months", value: 6 },
+  { title: "12 Months", value: 12 },
+  { title: "24 Months", value: 24 },
+];
+
+const fetchData = () => {
+  analytics.fetchSalesAnalysis(months.value);
+};
+
+const loading = ref(false);
+const error = ref(null);
+
+onMounted(fetchData);
+</script>
+
+<style scoped>
+.analytics-container {
+  animation: fadeIn 0.5s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.analytics-card {
+  background: linear-gradient(145deg, var(--dark-surface), #1a1a1a) !important;
+  border: 1px solid var(--dark-border) !important;
+}
+</style>
