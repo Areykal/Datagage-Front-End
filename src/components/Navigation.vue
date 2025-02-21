@@ -51,6 +51,8 @@ const menuItems = [
     @mouseleave="rail = true"
     :elevation="0"
     class="navigation-drawer"
+    width="256"
+    rail-width="75"
   >
     <div class="logo-container px-4 py-4 d-flex align-center">
       <v-avatar color="primary" size="38" class="mr-3 elevation-1">
@@ -89,6 +91,7 @@ const menuItems = [
 .navigation-drawer {
   background-color: var(--dark-surface) !important;
   border-right: 1px solid var(--dark-border) !important;
+  color: var(--text-primary-color) !important;
 }
 
 .logo-container {

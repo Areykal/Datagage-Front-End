@@ -7,7 +7,7 @@ const error = ref(null);
 const saving = ref(false);
 
 const settings = ref({
-  theme: "dark",
+  theme: localStorage.getItem("theme") || "dark",
   notifications: true,
 });
 
@@ -18,9 +18,11 @@ const themeOptions = [
 
 const saveSettings = () => {
   saving.value = true;
+  localStorage.setItem("theme", settings.value.theme);
   // Placeholder for settings save functionality
   setTimeout(() => {
     saving.value = false;
+    window.location.reload(); // Reload the page to apply the new theme
   }, 1000);
 };
 </script>
@@ -66,7 +68,8 @@ const saveSettings = () => {
 
 <style scoped>
 .settings-card {
-  background: linear-gradient(145deg, var(--dark-surface), #1a1a1a) !important;
-  border: 1px solid var(--dark-border) !important;
+  background: var(--surface-color) !important;
+  border: 1px solid var(--border-color) !important;
+  color: var(--text-primary-color) !important;
 }
 </style>

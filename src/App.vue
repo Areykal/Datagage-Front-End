@@ -1,5 +1,5 @@
 <template>
-  <v-app theme="dark">
+  <v-app>
     <Navigation />
     <v-main>
       <div class="app-container mx-auto px-6">
@@ -40,7 +40,8 @@ const enter = (el) => {
 <style>
 .v-application {
   font-family: "Inter", sans-serif !important;
-  background-color: #121212 !important;
+  background-color: var(--background-color) !important;
+  color: var(--text-primary-color) !important;
 }
 
 .app-container {
@@ -57,13 +58,21 @@ const enter = (el) => {
   }
 }
 
-/* Dark theme colors */
+/* Theme variables */
 :root {
-  --dark-background: #121212;
-  --dark-surface: #1e1e1e;
-  --dark-border: rgba(255, 255, 255, 0.05);
-  --dark-text-primary: #ffffff;
-  --dark-text-secondary: rgba(255, 255, 255, 0.7);
+  --background-color: #ffffff;
+  --surface-color: #f5f5f5;
+  --text-primary-color: #000000;
+  --text-secondary-color: #555555;
+  --border-color: #dddddd;
+}
+
+[data-theme="dark"] {
+  --background-color: #121212;
+  --surface-color: #1e1e1e;
+  --text-primary-color: #ffffff;
+  --text-secondary-color: rgba(255, 255, 255, 0.7);
+  --border-color: rgba(255, 255, 255, 0.1);
 }
 
 .toast-enter-active,

@@ -14,4 +14,13 @@ export default defineConfig({
   server: {
     port: 8080,
   },
+  css: {
+    preprocessorOptions: {
+      sass: {
+        additionalData: `
+          // Add any global SASS variables or mixins here if needed
+        `,
+      },
+    },
+  },
 });

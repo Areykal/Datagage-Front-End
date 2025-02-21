@@ -72,9 +72,10 @@ onMounted(() => {
 
 <style scoped>
 .dashboard-card {
-  background: linear-gradient(145deg, var(--dark-surface), #1a1a1a) !important;
-  border: 1px solid var(--dark-border) !important;
+  background: var(--surface-color) !important;
+  border: 1px solid var(--border-color) !important;
   transition: all 0.3s ease;
+  color: var(--text-primary-color) !important;
 }
 
 .dashboard-card:hover {

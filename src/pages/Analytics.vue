@@ -67,7 +67,8 @@ onMounted(fetchData);
 }
 
 .analytics-card {
-  background: linear-gradient(145deg, var(--dark-surface), #1a1a1a) !important;
-  border: 1px solid var(--dark-border) !important;
+  background: var(--surface-color) !important;
+  border: 1px solid var(--border-color) !important;
+  color: var(--text-primary-color) !important;
 }
 </style>
