@@ -12,13 +12,9 @@
     "@mdi/font": "7.4.47",
     "axios": "^1.7.9",
     "chart.js": "^4.4.7",
-<<<<<<< HEAD
     "node-cache": "^5.1.2",
     "openai": "^4.85.3",
     "pinia": "^3.0.1",
-=======
-    "datagage": "file:",
->>>>>>> 7da8da144b996ef72141b6bb9f0d7734386576ba
     "roboto-fontface": "*",
     "vue": "^3.4.31",
     "vue-chartjs": "^5.3.2",

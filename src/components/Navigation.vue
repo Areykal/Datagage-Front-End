@@ -51,7 +51,6 @@
         </div>
       </template>
     </v-navigation-drawer>
-  </div>
 </template>
 
 <script setup>
@@ -124,6 +123,7 @@ const navItems = [
 .nav-title {
   background: linear-gradient(45deg, #6366f1, #8b5cf6);
   -webkit-background-clip: text;
+  background-clip: border-box;
   -webkit-text-fill-color: transparent;
 }
 
