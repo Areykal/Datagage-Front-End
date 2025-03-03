@@ -1,64 +1,69 @@
 <template>
-  <v-navigation-drawer
-    permanent
-    :rail="rail"
-    @mouseenter="rail = false"
-    @mouseleave="rail = true"
-    :elevation="0"
-    class="navigation-drawer"
-    width="256"
-    rail-width="75"
-  >
-    <div class="logo-container px-4 py-4 d-flex align-center">
-      <v-avatar color="primary" size="38" class="mr-3 elevation-1">
-        <span class="text-h6 font-weight-bold text-white">D</span>
-      </v-avatar>
-      <div v-if="!rail" class="nav-title text-h6 font-weight-medium">
-        Datagage
-      </div>
-    </div>
+  <v-app-bar elevation="1">
+    <v-app-bar-title class="ml-2">
+      <router-link to="/" class="text-decoration-none">
+        <span class="text-h6 font-weight-bold primary--text">Datagage</span>
+      </router-link>
+    </v-app-bar-title>
 
-      <v-divider></v-divider>
+    <v-spacer></v-spacer>
 
-      <v-list density="compact" nav>
-        <v-list-item
-          v-for="item in navItems"
-          :key="item.title"
-          :to="item.to"
-          :prepend-icon="item.icon"
-          :title="isOpen ? item.title : ''"
-          :value="item.title"
-          class="nav-item my-1"
-          rounded="lg"
-        >
-        </v-list-item>
-      </v-list>
+    <v-btn
+      v-for="item in navItems"
+      :key="item.title"
+      :to="item.path"
+      variant="text"
+      :active="route.path === item.path"
+    >
+      {{ item.title }}
+    </v-btn>
 
-      <template v-slot:append>
-        <div class="pa-2">
-          <v-btn
-            v-if="isOpen"
-            block
-            color="primary"
-            to="/sources/new"
-            prepend-icon="mdi-plus"
-          >
-            New Source
-          </v-btn>
-          <v-btn v-else icon color="primary" to="/sources/new">
-            <v-icon>mdi-plus</v-icon>
-          </v-btn>
-        </div>
+    <v-menu v-if="user" location="bottom end">
+      <template v-slot:activator="{ props }">
+        <v-btn icon v-bind="props">
+          <v-avatar size="36">
+            <v-img
+              :src="user.avatar || 'https://cdn.vuetifyjs.com/images/john.png'"
+            ></v-img>
+          </v-avatar>
+        </v-btn>
       </template>
-    </v-navigation-drawer>
+      <v-list>
+        <v-list-item>
+          <v-list-item-title class="text-subtitle-2">{{
+            user.name
+          }}</v-list-item-title>
+          <v-list-item-subtitle>{{ user.email }}</v-list-item-subtitle>
+        </v-list-item>
+        <v-divider></v-divider>
+        <v-list-item
+          prepend-icon="mdi-cog"
+          title="Settings"
+          to="/settings"
+        ></v-list-item>
+        <v-list-item
+          prepend-icon="mdi-logout"
+          title="Logout"
+          @click="handleLogout"
+        ></v-list-item>
+      </v-list>
+    </v-menu>
+  </v-app-bar>
 </template>
 
 <script setup>
 import { ref, computed, onMounted, watch } from "vue";
 import { useUiStore } from "@/stores/uiStore";
+import { auth } from "@/utils/auth";
+import { useRouter, useRoute } from "vue-router";
 
 // Use the UI store for state management
 const uiStore = useUiStore();
+const router = useRouter();
+const route = useRoute();
+
+// Get current user
+const user = computed(() => auth.getUser());
 
 // Local reactive refs for better control
 const isOpen = ref(true);
@@ -81,6 +86,11 @@ const toggleDrawer = () => {
   isOpen.value = !isOpen.value;
 };
 
+// Handle logout
+const handleLogout = () => {
+  auth.logout();
+};
+
 // Initialize from stored value on mount
 onMounted(() => {
   // Force a re-render by briefly setting to null then to the stored value
@@ -96,12 +106,11 @@ onMounted(() => {
   }, 100);
 });
 
-const navItems = [
-  { title: "Dashboard", icon: "mdi-view-dashboard-outline", to: "/" },
-  { title: "Data Sources", icon: "mdi-database-outline", to: "/sources" },
-  { title: "Analytics", icon: "mdi-chart-box-outline", to: "/analytics" },
-  { title: "Settings", icon: "mdi-cog-outline", to: "/settings" },
-];
+const navItems = ref([
+  { title: "Dashboard", path: "/" },
+  { title: "Sources", path: "/sources" },
+  { title: "Analytics", path: "/analytics" },
+]);
 </script>
 
 <style scoped>

@@ -38,6 +38,48 @@
       </div>
     </v-card-text>
   </v-card>
+
+  <v-card class="mb-6" variant="outlined">
+    <v-card-text>
+      <v-row align="center">
+        <v-col cols="12" md="3">
+          <v-select
+            v-model="selectedPeriod"
+            :items="periodOptions"
+            label="Time Period"
+            variant="outlined"
+            density="compact"
+          ></v-select>
+        </v-col>
+
+        <v-col cols="12" md="3">
+          <v-select
+            v-model="selectedSource"
+            :items="sourceOptions"
+            label="Data Source"
+            variant="outlined"
+            density="compact"
+          ></v-select>
+        </v-col>
+
+        <v-col cols="12" md="3">
+          <v-select
+            v-model="selectedMetric"
+            :items="metricOptions"
+            label="Key Metric"
+            variant="outlined"
+            density="compact"
+          ></v-select>
+        </v-col>
+
+        <v-col cols="12" md="3" class="d-flex align-center">
+          <v-btn color="primary" variant="tonal" class="ml-auto">
+            Apply Filters
+          </v-btn>
+        </v-col>
+      </v-row>
+    </v-card-text>
+  </v-card>
 </template>
 
 <script setup>
@@ -74,6 +116,31 @@ watch(
     localFilters.customer = newCustomer;
   }
 );
+
+// Filter options
+const periodOptions = [
+  { title: "Last 7 days", value: "7d" },
+  { title: "Last 30 days", value: "30d" },
+  { title: "Last 90 days", value: "90d" },
+  { title: "Last 12 months", value: "12m" },
+];
+
+const sourceOptions = [
+  { title: "All Sources", value: "all" },
+  { title: "MySQL Database", value: "mysql" },
+  { title: "Google Sheets", value: "sheets" },
+];
+
+const metricOptions = [
+  { title: "Revenue", value: "revenue" },
+  { title: "Orders", value: "orders" },
+  { title: "Average Order Value", value: "aov" },
+];
+
+// Selected values
+const selectedPeriod = ref("30d");
+const selectedSource = ref("all");
+const selectedMetric = ref("revenue");
 </script>
 
 <style scoped>

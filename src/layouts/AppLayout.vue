@@ -65,7 +65,7 @@
 
 <script setup>
 import { onMounted } from "vue";
-import { useNotificationStore } from "@/stores/notificationStore";
+import { useNotificationStore } from "@/stores/notification"; // Fixed the import path
 import ToastNotification from "@/components/ToastNotification.vue";
 
 const notificationStore = useNotificationStore();

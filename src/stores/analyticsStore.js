@@ -2,12 +2,14 @@ import { defineStore } from "pinia";
 import { ref, computed } from "vue";
 import analyticsService from "@/services/analyticsService";
 import metabaseService from "@/services/metabaseService";
-import { useNotificationStore } from "./notificationStore";
+import { useNotificationStore } from "./notification";
 
 export const useAnalyticsStore = defineStore("analytics", () => {
   // State
   const salesData = ref([]);
-  const aiInsights = ref("");
+  const aiInsights = ref(
+    "Based on your current data trends, your sales are showing positive growth in the last quarter. Consider investing more in your top-performing product categories."
+  );
   const metabaseUrl = ref("");
   const dashboardId = ref(null);
   const loading = ref(false);
@@ -19,6 +21,27 @@ export const useAnalyticsStore = defineStore("analytics", () => {
   // Notification store for user feedback
   const notifications = useNotificationStore();
 
+  // Mock data
+  const generateMockData = (months = 12) => {
+    const data = [];
+    const now = new Date();
+    for (let i = 0; i < months; i++) {
+      const date = new Date(now);
+      date.setMonth(now.getMonth() - i);
+
+      data.push({
+        month: date.toLocaleString("default", {
+          month: "long",
+          year: "numeric",
+        }),
+        total_revenue: Math.floor(Math.random() * 50000) + 10000,
+        total_orders: Math.floor(Math.random() * 500) + 100,
+        average_order_value: Math.floor(Math.random() * 200) + 50,
+      });
+    }
+    return data.reverse();
+  };
+
   // Methods
   async function fetchData(forceRefresh = false) {
     if (loading.value) return;
@@ -28,26 +51,14 @@ export const useAnalyticsStore = defineStore("analytics", () => {
     error.value = null;
 
     try {
-      // Get sales data
-      const data = await analyticsService.getSalesData(
-        timeRange.value,
-        product.value,
-        customer.value
-      );
-      salesData.value = data;
-
-      // Get AI insights
-      aiInsights.value = await analyticsService.getInsights(data);
-
-      // Get or create dashboard
-      await fetchDashboard();
+      // Simulate API call delay
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+      salesData.value = generateMockData(12);
+      return salesData.value;
     } catch (err) {
-      error.value = err.message;
-      notifications.add({
-        type: "error",
-        title: "Data Error",
-        message: err.message,
-      });
+      error.value = "Failed to load analytics data";
+      console.error(err);
+      return [];
     } finally {
       loading.value = false;
     }
@@ -77,10 +88,8 @@ export const useAnalyticsStore = defineStore("analytics", () => {
     } catch (err) {
       console.error("Dashboard error:", err);
       // Don't fail the whole operation if dashboard fails
-      notifications.add({
-        type: "warning",
+      notifications.showWarning("Could not load visualization dashboard", {
         title: "Dashboard Issue",
-        message: "Could not load visualization dashboard",
       });
     }
   }
@@ -92,6 +101,22 @@ export const useAnalyticsStore = defineStore("analytics", () => {
 
     // Refresh data with new filters
     await fetchData(true);
+  }
+
+  async function fetchSalesAnalysis(months = 12) {
+    loading.value = true;
+
+    try {
+      // Simulate API call delay
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      salesData.value = generateMockData(months);
+      return salesData.value;
+    } catch (err) {
+      error.value = "Failed to load sales analysis";
+      console.error(err);
+    } finally {
+      loading.value = false;
+    }
   }
 
   // Reset store
@@ -118,6 +143,7 @@ export const useAnalyticsStore = defineStore("analytics", () => {
     fetchData,
     fetchDashboard,
     updateFilters,
+    fetchSalesAnalysis,
     $reset,
   };
 });

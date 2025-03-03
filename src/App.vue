@@ -1,38 +1,61 @@
 <template>
-<<<<<<< HEAD
-  <app-layout>
-    <router-view />
-  </app-layout>
-=======
   <v-app>
-    <Navigation />
+    <Navigation v-if="isAuthenticated" />
     <v-main>
       <div class="app-container mx-auto px-6">
         <router-view v-slot="{ Component }">
-          <component :is="Component" />
+          <transition name="fade" mode="out-in">
+            <component :is="Component" />
+          </transition>
         </router-view>
       </div>
     </v-main>
 
-    <TransitionGroup name="toast">
-      <ToastNotification
-        v-for="notification in notificationStore.notifications"
-        :key="notification.id"
-        v-bind="notification"
-      />
-    </TransitionGroup>
+    <NotificationContainer />
+
+    <!-- App-wide loading indicator -->
+    <div v-if="loading" class="global-loader">
+      <v-progress-circular
+        indeterminate
+        color="primary"
+        size="64"
+      ></v-progress-circular>
+    </div>
   </v-app>
->>>>>>> 7da8da144b996ef72141b6bb9f0d7734386576ba
 </template>
 
 <script setup>
-import AppLayout from '@/layouts/AppLayout.vue'
+import { ref, computed, watch } from "vue";
+import { useRoute } from "vue-router";
+import Navigation from "@/components/Navigation.vue";
+import NotificationContainer from "@/components/NotificationContainer.vue";
+import { auth } from "@/utils/auth";
+
+// Global loading state
+const loading = ref(false);
+const route = useRoute();
+
+// Check authentication status
+const isAuthenticated = computed(() => {
+  return auth.isAuthenticated();
+});
+
+// Watch for route changes to toggle loading state
+watch(
+  () => route.fullPath,
+  () => {
+    loading.value = true;
+    // Simulate network delay for demo
+    setTimeout(() => {
+      loading.value = false;
+    }, 300);
+  },
+  { immediate: true }
+);
 </script>
 
 <style>
-<<<<<<< HEAD
 /* Global styles */
-=======
 .v-application {
   font-family: "Inter", sans-serif !important;
   background-color: var(--background-color) !important;
@@ -54,7 +77,6 @@ import AppLayout from '@/layouts/AppLayout.vue'
 }
 
 /* Theme variables */
->>>>>>> 7da8da144b996ef72141b6bb9f0d7734386576ba
 :root {
   --background-color: #ffffff;
   --surface-color: #f5f5f5;
@@ -69,11 +91,6 @@ import AppLayout from '@/layouts/AppLayout.vue'
   --text-primary-color: #ffffff;
   --text-secondary-color: rgba(255, 255, 255, 0.7);
   --border-color: rgba(255, 255, 255, 0.1);
-}
-
-.v-application {
-  font-family: "Inter", sans-serif !important;
-  background-color: var(--dark-background) !important;
 }
 
 /* Toast animations */
@@ -97,5 +114,19 @@ import AppLayout from '@/layouts/AppLayout.vue'
 .fade-enter-from,
 .fade-leave-to {
   opacity: 0;
+}
+
+/* Global loader */
+.global-loader {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
 }
 </style>

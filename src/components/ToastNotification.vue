@@ -1,91 +1,124 @@
 <template>
-  <div class="notification" :class="type">
-    <div class="notification-header">
-      <span class="notification-title">{{ title }}</span>
-      <v-icon @click="dismiss" size="small">mdi-close</v-icon>
+  <div class="toast-notification" :class="type">
+    <div class="toast-content">
+      <v-icon :icon="getIcon" class="mr-2"></v-icon>
+      <div class="toast-text">
+        <strong v-if="title" class="toast-title">{{ title }}</strong>
+        <span>{{ message }}</span>
+      </div>
     </div>
-    <div class="notification-body">{{ message }}</div>
+    <v-btn icon size="small" @click="dismiss" class="toast-close">
+      <v-icon>mdi-close</v-icon>
+    </v-btn>
   </div>
 </template>
 
 <script setup>
-import { useNotificationStore } from "@/stores/notificationStore";
+import { computed } from "vue";
+import { useNotificationStore } from "@/stores/notification";
 
 const props = defineProps({
   id: {
     type: Number,
     required: true,
   },
-  type: {
+  message: {
     type: String,
-    default: "info",
-    validator: (value) =>
-      ["info", "success", "warning", "error"].includes(value),
+    required: true,
   },
   title: {
     type: String,
     default: "",
   },
-  message: {
+  type: {
     type: String,
-    required: true,
+    default: "info",
+  },
+  position: {
+    type: String,
+    default: "top-right",
   },
 });
 
 const notificationStore = useNotificationStore();
 
+const getIcon = computed(() => {
+  const icons = {
+    success: "mdi-check-circle",
+    error: "mdi-alert-circle",
+    warning: "mdi-alert",
+    info: "mdi-information",
+  };
+  return icons[props.type] || icons.info;
+});
+
 const dismiss = () => {
-  notificationStore.remove(props.id);
+  notificationStore.dismiss(props.id);
 };
 </script>
 
 <style scoped>
-.notification {
-  position: fixed;
-  top: 20px;
-  right: 20px;
+.toast-notification {
   min-width: 300px;
-  max-width: 400px;
-  padding: 15px;
-  margin-bottom: 15px;
+  max-width: 450px;
+  padding: 16px;
   border-radius: 8px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
-  z-index: 1000;
-  background-color: var(--dark-surface);
-  color: var(--dark-text-primary);
-  border-left: 4px solid transparent;
-}
-
-.notification-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  margin-bottom: 5px;
+  align-items: flex-start;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  margin-bottom: 10px;
+  pointer-events: auto;
+  animation: slide-in 0.3s ease-out forwards;
 }
 
-.notification-title {
-  font-weight: bold;
-  font-size: 1rem;
+.toast-content {
+  display: flex;
+  align-items: flex-start;
+  flex: 1;
 }
 
-.notification-body {
-  font-size: 0.9rem;
-  color: var(--dark-text-secondary);
+.toast-text {
+  display: flex;
+  flex-direction: column;
 }
 
-.notification.info {
-  border-left-color: #2196f3;
+.toast-title {
+  margin-bottom: 4px;
 }
 
-.notification.success {
-  border-left-color: #4caf50;
+.toast-close {
+  margin: -8px -8px -8px 8px;
 }
 
-.notification.warning {
-  border-left-color: #ff9800;
+.info {
+  background-color: #1976d2;
+  color: white;
 }
 
-.notification.error {
-  border-left-color: #f44336;
+.success {
+  background-color: #4caf50;
+  color: white;
+}
+
+.error {
+  background-color: #f44336;
+  color: white;
+}
+
+.warning {
+  background-color: #ff9800;
+  color: white;
+}
+
+@keyframes slide-in {
+  from {
+    transform: translateX(30px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
 }
 </style>

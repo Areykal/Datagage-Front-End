@@ -3,6 +3,7 @@ import { ref, onMounted, watch, nextTick } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import { airbyteService } from "@/services/airbyteService";
 import PageLayout from "@/components/PageLayout.vue";
+import { notify } from "@/utils/notifications";
 
 const router = useRouter();
 const route = useRoute();
@@ -17,8 +18,21 @@ const fetchSources = async () => {
     const response = await airbyteService.getSources();
     await nextTick(); // Wait for DOM update
     sources.value = response.data || [];
+
+    if (sources.value.length === 0) {
+      notify.info(
+        "No data sources found. Add your first data source to get started.",
+        {
+          position: "bottom-center",
+          timeout: 8000,
+        }
+      );
+    }
   } catch (err) {
     error.value = err.message;
+    notify.error("Failed to load data sources", {
+      title: "Error",
+    });
     console.error("Error fetching sources:", err);
   } finally {
     loading.value = false;

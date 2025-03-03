@@ -1,49 +1,47 @@
 <template>
-  <slot v-if="!error"></slot>
-  <div v-else class="error-container">
-    <v-card class="error-card pa-6 text-center">
-      <v-icon size="48" color="error" class="mb-4"
-        >mdi-alert-circle-outline</v-icon
-      >
-      <h3 class="text-h5 mb-2">Something went wrong</h3>
-      <p class="text-medium-emphasis mb-6">
-        {{ error.message || "An unexpected error occurred" }}
-      </p>
-      <v-btn color="primary" @click="handleRetry" class="mb-2">Retry</v-btn>
-      <div
-        class="text-caption mt-4"
-        v-if="process.env.NODE_ENV !== 'production'"
-      >
-        {{ error.stack }}
-      </div>
-    </v-card>
+  <div>
+    <template v-if="hasError">
+      <v-alert type="error" title="Something went wrong" class="mb-4">
+        {{ error }}
+      </v-alert>
+      <v-btn color="primary" @click="retry">Try Again</v-btn>
+    </template>
+    <template v-else>
+      <slot></slot>
+    </template>
   </div>
 </template>
 
 <script setup>
-import { ref, onErrorCaptured, provide } from "vue";
+import { ref, onErrorCaptured } from "vue";
 
-const error = ref(null);
+const props = defineProps({
+  onRetry: {
+    type: Function,
+    default: () => {},
+  },
+});
+
 const emit = defineEmits(["retry"]);
 
-// Reset error state and emit retry event
-const handleRetry = () => {
-  error.value = null;
-  emit("retry");
-};
+const error = ref(null);
+const hasError = ref(false);
 
-// Capture errors from child components
 onErrorCaptured((err) => {
-  error.value = err;
   console.error("Error captured in boundary:", err);
+  error.value = err.message || "An unexpected error occurred";
+  hasError.value = true;
   return false; // Prevent error propagation
 });
 
-// Expose error and retry function to child components
-provide("errorBoundary", {
-  error,
-  retry: handleRetry,
-});
+const retry = () => {
+  hasError.value = false;
+  error.value = null;
+  emit("retry");
+  if (props.onRetry && typeof props.onRetry === "function") {
+    props.onRetry();
+  }
+};
 </script>
 
 <style scoped>

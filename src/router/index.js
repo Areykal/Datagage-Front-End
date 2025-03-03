@@ -1,77 +1,111 @@
 import { createRouter, createWebHistory } from "vue-router";
-import DataSources from "@/pages/DataSources.vue";
-import Dashboard from "@/pages/Dashboard.vue";
+import { auth } from "@/utils/auth";
+import { notify } from "@/utils/notifications";
 
+// Import all pages
+import Dashboard from "@/pages/Dashboard.vue";
+import Analytics from "@/pages/Analytics.vue";
+import DataSources from "@/pages/DataSources.vue";
+import LoginPage from "@/pages/LoginPage.vue";
+import SourceNewPage from "@/pages/SourceNewPage.vue";
+import SourceDetailsPage from "@/pages/SourceDetailsPage.vue";
+import SettingsPage from "@/pages/SettingsPage.vue";
+import NotFound from "@/pages/NotFound.vue";
+
+// Define routes
 const routes = [
   {
     path: "/",
-    name: "dashboard",
+    name: "Dashboard",
     component: Dashboard,
-  },
-  {
-    path: "/sources",
-    name: "sources",
-    component: DataSources,
-    props: true,
-    // Add specific navigation handling
-    beforeEnter: (to, from, next) => {
-      if (from.name === "source-detail") {
-        to.meta.requiresRefresh = true;
-      }
-      next();
-    },
-  },
-  {
-    path: "/sources/new",
-    name: "source-types",
-    component: () => import("@/pages/sources/SourceTypes.vue"),
-  },
-  {
-    path: "/sources/new/:sourceType",
-    name: "source-config",
-    component: () => import("@/pages/sources/SourceConfig.vue"),
-  },
-  {
-    path: "/sources/:sourceId",
-    name: "source-detail",
-    component: () => import("@/pages/sources/SourceDetail.vue"),
-    props: true,
-    // Add meta to preserve parent state
-    meta: {
-      preserveState: true,
-      parent: "sources",
-    },
+    meta: { requiresAuth: true, title: "Dashboard" },
   },
   {
     path: "/analytics",
-    name: "analytics",
-    component: () => import("@/pages/Analytics.vue"),
+    name: "Analytics",
+    component: Analytics,
+    meta: { requiresAuth: true, title: "Analytics" },
+  },
+  {
+    path: "/sources",
+    name: "DataSources",
+    component: DataSources,
+    meta: { requiresAuth: true, title: "Data Sources" },
+  },
+  {
+    path: "/sources/new",
+    name: "NewSource",
+    component: SourceNewPage,
+    meta: { requiresAuth: true, title: "Add New Data Source" },
+  },
+  {
+    path: "/sources/:id",
+    name: "SourceDetails",
+    component: SourceDetailsPage,
+    meta: { requiresAuth: true, title: "Data Source Details" },
   },
   {
     path: "/settings",
-    name: "settings",
-    component: () => import("@/pages/Settings.vue"),
+    name: "Settings",
+    component: SettingsPage,
+    meta: { requiresAuth: true, title: "Settings" },
+  },
+  {
+    path: "/login",
+    name: "Login",
+    component: LoginPage,
+    meta: { guest: true, title: "Login" },
+  },
+  {
+    path: "/:pathMatch(.*)*",
+    name: "NotFound",
+    component: NotFound,
+    meta: { title: "Page Not Found" },
   },
 ];
 
+// Create router instance
 const router = createRouter({
   history: createWebHistory(),
   routes,
   scrollBehavior(to, from, savedPosition) {
     if (savedPosition) {
       return savedPosition;
+    } else {
+      return { top: 0 };
     }
-    return { top: 0 };
   },
 });
 
-// Update navigation guard
+// Navigation guard for authentication
 router.beforeEach((to, from, next) => {
-  // Force data refresh when returning to sources list from detail view
-  if (to.name === "sources" && from.name === "source-detail") {
-    to.meta.shouldRefresh = true;
+  // Update document title
+  document.title = to.meta.title ? `${to.meta.title} | Datagage` : "Datagage";
+
+  // Handle authentication
+  const isAuthenticated = auth.isAuthenticated();
+
+  if (to.matched.some((record) => record.meta.requiresAuth)) {
+    if (!isAuthenticated) {
+      notify.warning("Please log in to access this page", {
+        position: "bottom-center",
+      });
+      next({
+        path: "/login",
+        query: { redirect: to.fullPath },
+      });
+    } else {
+      next();
+    }
+  } else if (
+    to.matched.some((record) => record.meta.guest) &&
+    isAuthenticated
+  ) {
+    // If already logged in, redirect to dashboard
+    next("/");
+  } else {
+    next();
   }
-  next();
 });
 
 export default router;

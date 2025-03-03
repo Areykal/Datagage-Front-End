@@ -94,6 +94,7 @@ import { useAnalyticsStore } from "@/stores/analyticsStore";
 import PageLayout from "@/components/PageLayout.vue";
 import DataFilters from "@/components/DataFilters.vue";
 import ErrorBoundary from "@/components/ErrorBoundary.vue";
+import { notify } from "@/utils/notifications";
 
 const store = useAnalyticsStore();
 const { loading, error } = store;
@@ -107,8 +108,13 @@ const stats = computed(() => ({
 }));
 
 onMounted(async () => {
-  if (!store.salesData.length) {
-    await store.fetchData();
+  try {
+    if (!store.salesData.length) {
+      await store.fetchData();
+      notify.success("Dashboard data loaded successfully");
+    }
+  } catch (err) {
+    notify.error("Error loading dashboard data");
   }
 });
 
@@ -118,7 +124,12 @@ onUnmounted(() => {
 });
 
 const handleRetry = async () => {
-  await store.fetchData(true); // Force refresh
+  try {
+    await store.fetchData(true); // Force refresh
+    notify.success("Data refreshed successfully");
+  } catch (err) {
+    notify.error("Failed to refresh data");
+  }
 };
 </script>
 
