@@ -1,62 +1,103 @@
 <template>
-  <div>
-    <template v-if="hasError">
-      <v-alert type="error" title="Something went wrong" class="mb-4">
-        {{ error }}
-      </v-alert>
-      <v-btn color="primary" @click="retry">Try Again</v-btn>
-    </template>
-    <template v-else>
-      <slot></slot>
-    </template>
+  <div v-if="error" class="error-boundary">
+    <v-card class="error-card">
+      <v-card-item>
+        <v-card-title>
+          <v-icon color="error" class="mr-2">mdi-alert-circle</v-icon>
+          Something went wrong
+        </v-card-title>
+      </v-card-item>
+
+      <v-card-text>
+        <p class="mb-4">
+          We encountered an error while trying to display this content.
+        </p>
+        <v-expand-transition>
+          <div v-if="showDetails">
+            <v-sheet
+              color="error"
+              variant="tonal"
+              class="pa-3 mb-3 error-details"
+            >
+              <pre>{{ errorMessage }}</pre>
+            </v-sheet>
+          </div>
+        </v-expand-transition>
+      </v-card-text>
+
+      <v-card-actions>
+        <v-btn @click="toggleDetails" variant="text">
+          {{ showDetails ? "Hide" : "Show" }} Details
+        </v-btn>
+        <v-spacer></v-spacer>
+        <v-btn color="primary" @click="retry" :loading="retrying">
+          Try Again
+        </v-btn>
+      </v-card-actions>
+    </v-card>
   </div>
+  <slot v-else></slot>
 </template>
 
 <script setup>
-import { ref, onErrorCaptured } from "vue";
+import { ref, onErrorCaptured, computed } from "vue";
 
-const props = defineProps({
-  onRetry: {
-    type: Function,
-    default: () => {},
-  },
+// State
+const error = ref(null);
+const errorInfo = ref(null);
+const showDetails = ref(false);
+const retrying = ref(false);
+
+// Computed
+const errorMessage = computed(() => {
+  if (!error.value) return "";
+  return error.value.toString();
 });
 
+// Event emitter
 const emit = defineEmits(["retry"]);
 
-const error = ref(null);
-const hasError = ref(false);
-
-onErrorCaptured((err) => {
-  console.error("Error captured in boundary:", err);
-  error.value = err.message || "An unexpected error occurred";
-  hasError.value = true;
-  return false; // Prevent error propagation
+// Error handling
+onErrorCaptured((err, instance, info) => {
+  error.value = err;
+  errorInfo.value = info;
+  return false; // Prevent propagation
 });
 
-const retry = () => {
-  hasError.value = false;
+// Methods
+const toggleDetails = () => {
+  showDetails.value = !showDetails.value;
+};
+
+const retry = async () => {
+  retrying.value = true;
   error.value = null;
-  emit("retry");
-  if (props.onRetry && typeof props.onRetry === "function") {
-    props.onRetry();
+  errorInfo.value = null;
+
+  try {
+    emit("retry");
+  } finally {
+    retrying.value = false;
   }
 };
 </script>
 
 <style scoped>
-.error-container {
+.error-boundary {
+  padding: 16px;
   display: flex;
-  align-items: center;
   justify-content: center;
-  min-height: 300px;
-  width: 100%;
 }
 
 .error-card {
-  background: linear-gradient(145deg, var(--dark-surface), #1a1a1a) !important;
-  border: 1px solid var(--dark-border) !important;
-  max-width: 600px;
+  max-width: 800px;
   width: 100%;
+}
+
+.error-details {
+  overflow-x: auto;
+  border-radius: 4px;
+  font-family: monospace;
+  font-size: 0.9rem;
 }
 </style>

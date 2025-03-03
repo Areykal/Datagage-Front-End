@@ -11,42 +11,66 @@ import App from "./App.vue";
 import { createApp } from "vue";
 import { createPinia } from "pinia";
 import router from "./router";
-import { registerPlugins } from "@/plugins";
 import { notificationPlugin } from "@/utils/notifications";
 
-// Global error handler
-const handleError = (err, vm, info) => {
-  console.error("Global error:", err);
-  console.log("Error info:", info);
+import "vuetify/styles";
+import "@mdi/font/css/materialdesignicons.css";
 
-  // Notify user of error
-  const notify = vm.$notify || vm.$root?.$notify;
-  if (notify) {
-    notify.error("An unexpected error occurred", {
-      title: "Application Error",
-      timeout: 0, // No auto-dismiss
-    });
-  }
-};
+import { createVuetify } from "vuetify";
+import * as components from "vuetify/components";
+import * as directives from "vuetify/directives";
+import { aliases, mdi } from "vuetify/iconsets/mdi";
+
+// Configure Vuetify
+const vuetify = createVuetify({
+  components,
+  directives,
+  icons: {
+    defaultSet: "mdi",
+    aliases,
+    sets: {
+      mdi,
+    },
+  },
+  theme: {
+    defaultTheme: "dark",
+    themes: {
+      dark: {
+        dark: true,
+        colors: {
+          primary: "#2979FF",
+          secondary: "#FF6E40",
+          accent: "#FF4081",
+          error: "#FF5252",
+          info: "#2196F3",
+          success: "#4CAF50",
+          warning: "#FFC107",
+        },
+      },
+      light: {
+        dark: false,
+        colors: {
+          primary: "#1976D2",
+          secondary: "#FF5722",
+          accent: "#E91E63",
+          error: "#F44336",
+          info: "#2196F3",
+          success: "#4CAF50",
+          warning: "#FB8C00",
+        },
+      },
+    },
+  },
+});
 
 // Create app instance
 const app = createApp(App);
-app.config.errorHandler = handleError;
-app.config.warnHandler = (msg) => console.warn(`Warning: ${msg}`);
 
-const pinia = createPinia();
-
-// Register plugins
-app.use(pinia);
+// Install plugins
+app.use(createPinia());
 app.use(router);
+app.use(vuetify);
 app.use(notificationPlugin);
-
-// Register Vuetify and other plugins
-registerPlugins(app);
-
-// Apply the selected theme
-const theme = localStorage.getItem("theme") || "dark";
-document.documentElement.setAttribute("data-theme", theme);
 
 // Mount app
 app.mount("#app");

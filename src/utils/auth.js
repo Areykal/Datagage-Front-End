@@ -1,112 +1,79 @@
 import router from "@/router";
-import { notify } from "./notifications";
+import { notify } from "@/utils/notifications";
 
-/**
- * Auth utility functions for authentication operations
- */
+const USER_KEY = "datagage_user";
+const TOKEN_KEY = "datagage_token";
+
 export const auth = {
-  /**
-   * Check if user is authenticated
-   */
-  isAuthenticated() {
-    return localStorage.getItem("isAuthenticated") === "true";
+  // Get auth token from localStorage
+  getToken() {
+    return localStorage.getItem(TOKEN_KEY);
   },
 
-  /**
-   * Demo login - simplified for development
-   * @param {string} email User email (optional in demo mode)
-   * @param {boolean} rememberMe Remember login
-   */
+  // Set auth token in localStorage
+  setToken(token) {
+    localStorage.setItem(TOKEN_KEY, token);
+  },
+
+  // Get current user from localStorage
+  getUser() {
+    const userStr = localStorage.getItem(USER_KEY);
+    return userStr ? JSON.parse(userStr) : null;
+  },
+
+  // Set user in localStorage
+  setUser(user) {
+    localStorage.setItem(USER_KEY, JSON.stringify(user));
+  },
+
+  // Check if user is authenticated
+  isAuthenticated() {
+    return !!this.getToken();
+  },
+
+  // Demo login (for development purposes only)
   async demoLogin(email = "demo@datagage.com", rememberMe = false) {
     try {
-      // Simulate network delay
-      await new Promise((resolve) => setTimeout(resolve, 800));
-
-      // Store auth token
-      localStorage.setItem("isAuthenticated", "true");
-
-      // Store demo user info
-      const userData = {
-        id: "user-1",
-        email: email || "demo@datagage.com",
+      // Create demo user and token
+      const demoUser = {
+        id: "1",
         name: "Demo User",
+        email: email || "demo@datagage.com",
         role: "admin",
       };
-      localStorage.setItem("user", JSON.stringify(userData));
 
-      // Show success notification
-      notify.success("Successfully logged in", {
-        position: "bottom-center",
-      });
+      const demoToken = "demo-token-" + Math.random().toString(36).substring(2);
 
-      // Redirect to dashboard or requested page
-      const redirectPath = router.currentRoute.value.query.redirect || "/";
-      router.push(redirectPath);
+      // Store user and token
+      this.setUser(demoUser);
+      this.setToken(demoToken);
 
-      return { success: true, user: userData };
+      // Notify success and redirect
+      notify.success("Welcome to Datagage!");
+
+      // Get redirect path if available
+      const redirect = router.currentRoute.value.query.redirect || "/";
+      await router.push(redirect);
+
+      return { success: true };
     } catch (error) {
       console.error("Login error:", error);
-      return { success: false, error: error.message || "Login failed" };
+      return {
+        success: false,
+        error: error.message || "An error occurred during login",
+      };
     }
   },
 
-  /**
-   * Log in user
-   * @param {string} email User email
-   * @param {string} password User password
-   * @param {boolean} rememberMe Remember login
-   */
-  async login(email, password, rememberMe = false) {
-    try {
-      // In a real app, this would call your API
-      // Simulated authentication for demo
-      if (email === "admin@datagage.com" && password === "password123") {
-        localStorage.setItem("isAuthenticated", "true");
+  // Log out
+  async logout() {
+    // Clear stored data
+    localStorage.removeItem(USER_KEY);
+    localStorage.removeItem(TOKEN_KEY);
 
-        // Store user info
-        const userData = {
-          id: "user-1",
-          email: email,
-          name: "Admin User",
-          role: "admin",
-        };
-
-        localStorage.setItem("user", JSON.stringify(userData));
-
-        notify.success("Successfully logged in");
-        return { success: true, user: userData };
-      } else {
-        throw new Error("Invalid email or password");
-      }
-    } catch (error) {
-      notify.error(error.message || "Login failed");
-      return { success: false, error: error.message };
-    }
-  },
-
-  /**
-   * Log out user
-   */
-  logout() {
-    localStorage.removeItem("isAuthenticated");
-    localStorage.removeItem("user");
-    notify.info("Successfully logged out");
-    router.push("/login");
-  },
-
-  /**
-   * Get current user
-   */
-  getUser() {
-    const userStr = localStorage.getItem("user");
-    if (!userStr) return null;
-
-    try {
-      return JSON.parse(userStr);
-    } catch (e) {
-      this.logout(); // Invalid user data, force logout
-      return null;
-    }
+    // Notify and redirect
+    notify.info("You have been logged out");
+    await router.push("/login");
   },
 };
 

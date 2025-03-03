@@ -1,108 +1,113 @@
 <template>
-  <v-app>
-    <Navigation v-if="isAuthenticated" />
+  <v-app theme="dark">
+    <AppBar v-if="isAuthenticated" @toggle-drawer="drawer = !drawer" />
+
+    <MainNavigation
+      v-if="isAuthenticated"
+      v-model:drawer="drawer"
+      v-model:rail="rail"
+    />
+
     <v-main>
-      <div class="app-container mx-auto px-6">
+      <v-container
+        :class="[
+          'pa-4',
+          isAuthenticated ? 'ml-auto mr-4' : 'mx-auto',
+          rail ? 'app-container--rail' : '',
+          drawer ? 'app-container--drawer' : '',
+        ]"
+      >
         <router-view v-slot="{ Component }">
           <transition name="fade" mode="out-in">
             <component :is="Component" />
           </transition>
         </router-view>
-      </div>
+      </v-container>
     </v-main>
 
-    <NotificationContainer />
-
-    <!-- App-wide loading indicator -->
-    <div v-if="loading" class="global-loader">
-      <v-progress-circular
-        indeterminate
-        color="primary"
-        size="64"
-      ></v-progress-circular>
-    </div>
+    <v-footer v-if="!isAuthenticated" app class="d-flex flex-column">
+      <div class="px-4 py-2 text-center w-100">
+        <span class="text-caption text-grey">
+          &copy; {{ new Date().getFullYear() }} Datagage - Your data integration
+          platform
+        </span>
+      </div>
+    </v-footer>
   </v-app>
 </template>
 
 <script setup>
-import { ref, computed, watch } from "vue";
+import { ref, computed, onMounted, watch } from "vue";
 import { useRoute } from "vue-router";
-import Navigation from "@/components/Navigation.vue";
-import NotificationContainer from "@/components/NotificationContainer.vue";
 import { auth } from "@/utils/auth";
+import AppBar from "@/components/AppBar.vue";
+import MainNavigation from "@/components/MainNavigation.vue";
 
-// Global loading state
-const loading = ref(false);
+// Authentication state
+const isAuthenticated = computed(() => auth.isAuthenticated());
+
+// Navigation state
+const drawer = ref(true);
+const rail = ref(false);
+
+// Handle route changes
 const route = useRoute();
-
-// Check authentication status
-const isAuthenticated = computed(() => {
-  return auth.isAuthenticated();
-});
-
-// Watch for route changes to toggle loading state
 watch(
-  () => route.fullPath,
+  () => route.path,
   () => {
-    loading.value = true;
-    // Simulate network delay for demo
-    setTimeout(() => {
-      loading.value = false;
-    }, 300);
-  },
-  { immediate: true }
+    // Close drawer on navigation in mobile view
+    if (window.innerWidth < 960) {
+      drawer.value = false;
+    }
+  }
 );
+
+// Initialize theme from localStorage
+onMounted(() => {
+  const theme = localStorage.getItem("theme") || "dark";
+  document.documentElement.setAttribute("data-theme", theme);
+});
 </script>
 
 <style>
 /* Global styles */
-.v-application {
-  font-family: "Inter", sans-serif !important;
-  background-color: var(--background-color) !important;
-  color: var(--text-primary-color) !important;
-}
-
-.app-container {
-  max-width: 1440px;
-  min-height: 100vh;
-  padding: clamp(1rem, 2vw, 2rem);
-  margin: 0 auto;
-  width: 100%;
-}
-
-@media (max-width: 600px) {
-  .app-container {
-    padding: 1rem;
-  }
-}
-
-/* Theme variables */
 :root {
-  --background-color: #ffffff;
-  --surface-color: #f5f5f5;
-  --text-primary-color: #000000;
-  --text-secondary-color: #555555;
-  --border-color: #dddddd;
-}
+  --primary-color: #2979ff;
+  --primary-color-soft: rgba(41, 121, 255, 0.1);
+  --secondary-color: #ff6e40;
 
-[data-theme="dark"] {
   --background-color: #121212;
   --surface-color: #1e1e1e;
-  --text-primary-color: #ffffff;
-  --text-secondary-color: rgba(255, 255, 255, 0.7);
-  --border-color: rgba(255, 255, 255, 0.1);
+  --dark-surface: #252525;
+  --dark-border: #333;
+
+  --text-primary-color: rgba(255, 255, 255, 0.87);
+  --text-secondary-color: rgba(255, 255, 255, 0.6);
+
+  --border-color: #333;
 }
 
-/* Toast animations */
-.toast-enter-active,
-.toast-leave-active {
-  transition: all 0.3s ease;
+body {
+  font-family: "Inter", sans-serif;
+  background-color: var(--background-color);
+  color: var(--text-primary-color);
+  transition: background-color 0.3s ease;
 }
 
-.toast-enter-from,
-.toast-leave-to {
-  transform: translateY(-100%);
-  opacity: 0;
+/* Container responsive adjustments */
+.app-container--drawer {
+  max-width: calc(100% - 260px) !important;
+}
+
+.app-container--rail {
+  max-width: calc(100% - 56px) !important;
+}
+
+@media (max-width: 960px) {
+  .app-container--drawer,
+  .app-container--rail {
+    max-width: 100% !important;
+  }
 }
 
 /* Page transitions */
@@ -114,19 +119,5 @@ watch(
 .fade-enter-from,
 .fade-leave-to {
   opacity: 0;
-}
-
-/* Global loader */
-.global-loader {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.7);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 9999;
 }
 </style>

@@ -1,75 +1,196 @@
 <script setup>
 import { onMounted, ref } from "vue";
-import { useAnalyticsStore } from "@/store/analytics";
+import { useAnalyticsStore } from "@/stores/analyticsStore";
+import DataFilters from "@/components/DataFilters.vue";
 
-const analytics = useAnalyticsStore;
-const months = ref(12);
+const analyticsStore = useAnalyticsStore();
+const selectedFilters = ref({
+  timeRange: 12,
+  product: "all",
+  customer: "all",
+});
+
+const quickActions = ref([
+  {
+    title: "Add Source",
+    icon: "mdi-database-plus-outline",
+    color: "primary",
+    to: "/sources/new",
+  },
+  {
+    title: "View Sources",
+    icon: "mdi-database-outline",
+    color: "secondary",
+    to: "/sources",
+  },
+  {
+    title: "Analytics",
+    icon: "mdi-chart-bar",
+    color: "info",
+    to: "/analytics",
+  },
+  {
+    title: "Settings",
+    icon: "mdi-cog-outline",
+    color: "default",
+    to: "/settings",
+  },
+]);
+
+const activities = ref([
+  {
+    id: 1,
+    title: "New data source connected",
+    timestamp: "5 minutes ago",
+    icon: "mdi-database-plus",
+    iconColor: "success",
+  },
+  {
+    id: 2,
+    title: "Source sync completed",
+    timestamp: "1 hour ago",
+    icon: "mdi-sync",
+    iconColor: "info",
+  },
+  {
+    id: 3,
+    title: "System update installed",
+    timestamp: "Yesterday",
+    icon: "mdi-update",
+    iconColor: "primary",
+  },
+]);
 
 onMounted(() => {
-  analytics.fetchSalesAnalysis(months.value);
+  loadAnalytics();
 });
+
+const loadAnalytics = () => {
+  analyticsStore.fetchSalesAnalysis(selectedFilters.value.timeRange);
+};
+
+const handleFiltersApplied = (filters) => {
+  selectedFilters.value = { ...filters };
+  loadAnalytics();
+};
 </script>
 
 <template>
   <v-container>
     <v-row>
       <v-col cols="12">
-        <v-card>
-          <v-card-title>Sales Analytics Dashboard</v-card-title>
-          <v-card-text>
-            <v-select
-              v-model="months"
-              :items="[3, 6, 12, 24]"
-              label="Select Period (Months)"
-              @update:modelValue="analytics.fetchSalesAnalysis(months)"
-            ></v-select>
+        <DataFilters
+          :initial-filters="selectedFilters"
+          @apply-filters="handleFiltersApplied"
+        />
 
+        <v-card class="mb-6">
+          <v-card-title>Quick Actions</v-card-title>
+          <v-card-text>
+            <v-row>
+              <v-col
+                v-for="action in quickActions"
+                :key="action.title"
+                cols="6"
+                md="3"
+              >
+                <v-btn
+                  :prepend-icon="action.icon"
+                  :color="action.color"
+                  variant="tonal"
+                  block
+                  class="text-none py-3"
+                  :to="action.to"
+                >
+                  {{ action.title }}
+                </v-btn>
+              </v-col>
+            </v-row>
+          </v-card-text>
+        </v-card>
+
+        <v-card>
+          <v-card-title>Recent Activities</v-card-title>
+          <v-card-text>
+            <v-list v-if="activities.length > 0" lines="two">
+              <v-list-item v-for="activity in activities" :key="activity.id">
+                <template v-slot:prepend>
+                  <v-avatar
+                    :color="activity.iconColor"
+                    variant="tonal"
+                    size="36"
+                  >
+                    <v-icon :icon="activity.icon"></v-icon>
+                  </v-avatar>
+                </template>
+                <v-list-item-title>{{ activity.title }}</v-list-item-title>
+                <v-list-item-subtitle>{{
+                  activity.timestamp
+                }}</v-list-item-subtitle>
+              </v-list-item>
+            </v-list>
+            <div v-else class="text-center pa-4">
+              <v-icon size="48" color="primary" class="mb-2"
+                >mdi-information-outline</v-icon
+              >
+              <div>No recent activities</div>
+            </div>
+          </v-card-text>
+        </v-card>
+
+        <v-card v-if="analyticsStore.salesData?.length" class="mt-4">
+          <v-card-title>
+            <v-icon start class="mr-2">mdi-chart-timeline-variant</v-icon>
+            Sales Analytics Overview
+          </v-card-title>
+          <v-card-text>
             <v-alert
-              v-if="analytics.state.error"
+              v-if="analyticsStore.error"
               type="error"
-              text="{{ analytics.state.error }}"
+              :text="analyticsStore.error"
+              prepend-icon="mdi-alert-circle"
             ></v-alert>
 
             <v-progress-circular
-              v-if="analytics.state.loading"
+              v-if="analyticsStore.loading"
               indeterminate
               color="primary"
             ></v-progress-circular>
 
-            <template v-else-if="analytics.state.salesData.length">
-              <v-row>
-                <v-col
-                  v-for="(data, index) in analytics.state.salesData"
-                  :key="index"
-                  cols="12"
-                  md="4"
-                >
-                  <v-card>
-                    <v-card-title>{{
-                      new Date(data.month).toLocaleDateString("en-US", {
-                        month: "long",
-                        year: "numeric",
-                      })
-                    }}</v-card-title>
-                    <v-card-text>
-                      <p>Revenue: ${{ data.total_revenue }}</p>
-                      <p>Orders: {{ data.total_orders }}</p>
-                      <p>Customers: {{ data.unique_customers }}</p>
-                      <p>Avg Order: ${{ data.avg_order_value }}</p>
-                    </v-card-text>
-                  </v-card>
-                </v-col>
-              </v-row>
+            <v-row v-else>
+              <v-col
+                v-for="(data, index) in analyticsStore.salesData"
+                :key="index"
+                cols="12"
+                md="4"
+              >
+                <v-card>
+                  <v-card-title class="text-subtitle-1">
+                    {{ data.region }} - {{ data.product }}
+                  </v-card-title>
+                  <v-card-text>
+                    <p>
+                      <v-icon size="small" class="mr-1">mdi-cash</v-icon>
+                      Revenue: ${{ data.total_revenue }}
+                    </p>
+                    <p>
+                      <v-icon size="small" class="mr-1">mdi-cart</v-icon>
+                      Orders: {{ data.total_orders }}
+                    </p>
+                  </v-card-text>
+                </v-card>
+              </v-col>
+            </v-row>
 
-              <v-card class="mt-4">
-                <v-card-title>Analysis</v-card-title>
-                <v-card-text>
-                  <p style="white-space: pre-line">
-                    {{ analytics.state.analysis }}
-                  </p>
-                </v-card-text>
-              </v-card>
-            </template>
+            <v-card v-if="analyticsStore.aiInsights" class="mt-4">
+              <v-card-title>
+                <v-icon start class="mr-2">mdi-chart-areaspline</v-icon>
+                AI Analysis
+              </v-card-title>
+              <v-card-text>
+                <div v-html="analyticsStore.aiInsights"></div>
+              </v-card-text>
+            </v-card>
           </v-card-text>
         </v-card>
       </v-col>

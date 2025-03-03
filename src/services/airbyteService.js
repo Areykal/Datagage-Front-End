@@ -1,144 +1,170 @@
 import axios from "axios";
+import { auth } from "@/utils/auth";
 
-const API_BASE_URL = "http://localhost:5000/api/airbyte";
+// Base URL for API calls - replace with actual URL in production
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL || "https://api.datagage.io";
 
-// Add error handling and response processing
-const handleResponse = (response) => {
-  if (response.data.error) {
-    throw new Error(response.data.error);
+// Create Axios instance with default config
+const api = axios.create({
+  baseURL: API_BASE_URL,
+  headers: {
+    "Content-Type": "application/json",
+  },
+});
+
+// Add request interceptor to attach auth token
+api.interceptors.request.use(
+  (config) => {
+    const token = auth.getToken();
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
   }
-  return response.data;
-};
-
-const handleError = (error) => {
-  const message =
-    error.response?.data?.error || error.message || "An unknown error occurred";
-  console.error("API Error:", error);
-  throw new Error(message);
-};
-
-/**
- * Airbyte Service - Placeholder implementation
- */
+);
 
 // Mock data for development
-const mockSourceTypes = [
-  {
-    type: "mysql",
-    name: "MySQL",
-    description: "Connect to your MySQL database",
-    formFields: [
-      { name: "host", label: "Host", type: "text", required: true },
-      {
-        name: "port",
-        label: "Port",
-        type: "number",
-        default: 3306,
-        required: true,
-      },
-      { name: "database", label: "Database", type: "text", required: true },
-      { name: "username", label: "Username", type: "text", required: true },
-      { name: "password", label: "Password", type: "password", required: true },
-    ],
-  },
-  {
-    type: "postgres",
-    name: "PostgreSQL",
-    description: "Connect to your PostgreSQL database",
-    formFields: [
-      { name: "host", label: "Host", type: "text", required: true },
-      {
-        name: "port",
-        label: "Port",
-        type: "number",
-        default: 5432,
-        required: true,
-      },
-      { name: "database", label: "Database", type: "text", required: true },
-      { name: "username", label: "Username", type: "text", required: true },
-      { name: "password", label: "Password", type: "password", required: true },
-    ],
-  },
-  {
-    type: "google-sheets",
-    name: "Google Sheets",
-    description: "Import data from Google Sheets",
-    formFields: [
-      {
-        name: "spreadsheetId",
-        label: "Spreadsheet ID",
-        type: "text",
-        required: true,
-        hint: "ID from the URL of your Google Sheet",
-      },
-      {
-        name: "credentials",
-        label: "Service Account JSON",
-        type: "text",
-        required: true,
-      },
-    ],
-  },
-];
-
 const mockSources = [
   {
-    sourceId: "src_1",
-    name: "Production MySQL",
+    sourceId: "1",
+    name: "MySQL Database",
     sourceType: "mysql",
     status: "active",
     connectionConfiguration: {
-      host: "db.example.com",
+      host: "mysql.example.com",
       port: 3306,
-      database: "production",
+      database: "analytics",
+      username: "dbuser",
+      password: "password123",
     },
   },
   {
-    sourceId: "src_2",
-    name: "Marketing Data",
-    sourceType: "google-sheets",
+    sourceId: "2",
+    name: "PostgreSQL Data Warehouse",
+    sourceType: "postgres",
     status: "active",
     connectionConfiguration: {
-      spreadsheetId: "1XYZ123",
+      host: "postgres.example.com",
+      port: 5432,
+      database: "warehouse",
+      username: "analyst",
+      password: "p@ssw0rd",
+    },
+  },
+  {
+    sourceId: "3",
+    name: "Google Sheets Marketing",
+    sourceType: "google-sheets",
+    status: "inactive",
+    connectionConfiguration: {
+      spreadsheetId: "1XYZ123abc",
+      credentialsJson: "{...}",
     },
   },
 ];
 
+// Simulated API delay
+const delay = (ms = 500) => new Promise((resolve) => setTimeout(resolve, ms));
+
+// Airbyte service
 export const airbyteService = {
-  // Source types methods
-  getSourceTypes() {
-    return Promise.resolve(mockSourceTypes);
-  },
-
-  getSourceTypeDetails(typeId) {
-    const sourceType = mockSourceTypes.find((type) => type.type === typeId);
-    return Promise.resolve(sourceType || null);
-  },
-
-  // Sources methods
-  getSources() {
-    return Promise.resolve({ data: mockSources });
-  },
-
-  getSourceDetails(sourceId) {
-    const source = mockSources.find((s) => s.sourceId === sourceId);
-    if (!source) {
-      return Promise.reject(new Error("Source not found"));
+  // Get all sources
+  async getSources() {
+    if (import.meta.env.DEV) {
+      // Return mock data in development
+      await delay();
+      return { data: mockSources };
     }
-    return Promise.resolve(source);
+
+    return api.get("/sources");
   },
 
-  createSource(sourceData) {
-    // Simulate API call
-    console.log("Creating source with data:", sourceData);
-    return Promise.resolve({
-      sourceId: `src_${Date.now()}`,
-      ...sourceData,
-    });
+  // Get a specific source by ID
+  async getSourceDetails(sourceId) {
+    if (import.meta.env.DEV) {
+      await delay();
+      const source = mockSources.find((s) => s.sourceId === sourceId);
+      if (!source) {
+        throw new Error("Source not found");
+      }
+      return source;
+    }
+
+    return api.get(`/sources/${sourceId}`);
   },
 
-  deleteSource(sourceId) {
-    console.log(`Deleting source with ID: ${sourceId}`);
-    return Promise.resolve({ success: true });
+  // Create a new source
+  async createSource(sourceData) {
+    if (import.meta.env.DEV) {
+      await delay();
+      const newSource = {
+        sourceId: Date.now().toString(),
+        status: "active",
+        ...sourceData,
+      };
+      mockSources.push(newSource);
+      return { data: newSource };
+    }
+
+    return api.post("/sources", sourceData);
+  },
+
+  // Update a source
+  async updateSource(sourceId, sourceData) {
+    if (import.meta.env.DEV) {
+      await delay();
+      const sourceIndex = mockSources.findIndex((s) => s.sourceId === sourceId);
+      if (sourceIndex === -1) {
+        throw new Error("Source not found");
+      }
+      mockSources[sourceIndex] = {
+        ...mockSources[sourceIndex],
+        ...sourceData,
+      };
+      return { data: mockSources[sourceIndex] };
+    }
+
+    return api.put(`/sources/${sourceId}`, sourceData);
+  },
+
+  // Delete a source
+  async deleteSource(sourceId) {
+    if (import.meta.env.DEV) {
+      await delay();
+      const sourceIndex = mockSources.findIndex((s) => s.sourceId === sourceId);
+      if (sourceIndex === -1) {
+        throw new Error("Source not found");
+      }
+      mockSources.splice(sourceIndex, 1);
+      return { success: true };
+    }
+
+    return api.delete(`/sources/${sourceId}`);
+  },
+
+  // Get available source types
+  async getSourceTypes() {
+    if (import.meta.env.DEV) {
+      await delay();
+      return {
+        data: [
+          { id: "mysql", name: "MySQL", icon: "mdi-database" },
+          { id: "postgres", name: "PostgreSQL", icon: "mdi-database" },
+          {
+            id: "google-sheets",
+            name: "Google Sheets",
+            icon: "mdi-google-spreadsheet",
+          },
+        ],
+      };
+    }
+
+    return api.get("/source-types");
   },
 };
+
+export default airbyteService;

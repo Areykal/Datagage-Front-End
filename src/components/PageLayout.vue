@@ -5,21 +5,19 @@
         <div class="d-flex align-center">
           <v-btn
             v-if="showBack"
-            icon
+            icon="mdi-arrow-left"
             variant="text"
             size="small"
-            class="mr-2"
+            class="mr-3"
             @click="goBack"
-          >
-            <v-icon>mdi-arrow-left</v-icon>
-          </v-btn>
+          ></v-btn>
           <h1 class="text-h4 font-weight-bold">{{ title }}</h1>
         </div>
         <p v-if="subtitle" class="text-subtitle-1 text-medium-emphasis mt-1">
           {{ subtitle }}
         </p>
       </div>
-      <div class="page-actions">
+      <div v-if="$slots.actions" class="page-actions">
         <slot name="actions"></slot>
       </div>
     </div>
@@ -30,25 +28,31 @@
       variant="tonal"
       closable
       class="mb-6"
-      @click:close="error = null"
+      @click:close="clearError"
     >
       {{ error }}
     </v-alert>
 
-    <v-progress-linear
-      v-if="loading"
-      indeterminate
-      color="primary"
-      class="mb-6"
-    ></v-progress-linear>
+    <v-sheet v-if="loading" class="d-flex justify-center align-center py-8">
+      <v-progress-circular
+        indeterminate
+        color="primary"
+        size="64"
+      ></v-progress-circular>
+    </v-sheet>
 
-    <slot></slot>
+    <div v-else>
+      <slot></slot>
+    </div>
   </div>
 </template>
 
 <script setup>
 import { useRouter } from "vue-router";
 
+const router = useRouter();
+
+// Props
 const props = defineProps({
   title: {
     type: String,
@@ -72,10 +76,15 @@ const props = defineProps({
   },
 });
 
-const router = useRouter();
+const emit = defineEmits(["clearError"]);
 
+// Methods
 const goBack = () => {
-  router.back();
+  router.go(-1);
+};
+
+const clearError = () => {
+  emit("clearError");
 };
 </script>
 
@@ -87,13 +96,9 @@ const goBack = () => {
 .page-header {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
-}
-
-.page-actions {
-  display: flex;
   align-items: center;
-  gap: 8px;
+  flex-wrap: wrap;
+  gap: 16px;
 }
 
 @keyframes fadeIn {
@@ -104,18 +109,6 @@ const goBack = () => {
   to {
     opacity: 1;
     transform: translateY(0);
-  }
-}
-
-@media (max-width: 600px) {
-  .page-header {
-    flex-direction: column;
-    gap: 16px;
-  }
-
-  .page-actions {
-    width: 100%;
-    justify-content: flex-start;
   }
 }
 </style>

@@ -4,6 +4,45 @@
     subtitle="Welcome to Datagage - Your data integration platform"
     :loading="loading"
   >
+    <!-- Stats Summary Cards -->
+    <v-row class="mb-6">
+      <v-col cols="12" sm="6" md="3">
+        <v-card class="dashboard-card">
+          <v-card-item>
+            <v-card-title>Total Sources</v-card-title>
+            <div class="text-h4">{{ stats.totalSources || 0 }}</div>
+          </v-card-item>
+        </v-card>
+      </v-col>
+
+      <v-col cols="12" sm="6" md="3">
+        <v-card class="dashboard-card">
+          <v-card-item>
+            <v-card-title>Active Sources</v-card-title>
+            <div class="text-h4">{{ stats.activeSources || 0 }}</div>
+          </v-card-item>
+        </v-card>
+      </v-col>
+
+      <v-col cols="12" sm="6" md="3">
+        <v-card class="dashboard-card">
+          <v-card-item>
+            <v-card-title>Total Records</v-card-title>
+            <div class="text-h4">{{ stats.totalRecords || 0 }}</div>
+          </v-card-item>
+        </v-card>
+      </v-col>
+
+      <v-col cols="12" sm="6" md="3">
+        <v-card class="dashboard-card">
+          <v-card-item>
+            <v-card-title>Last Sync</v-card-title>
+            <div class="text-subtitle-1">{{ stats.lastSync || "Never" }}</div>
+          </v-card-item>
+        </v-card>
+      </v-col>
+    </v-row>
+
     <v-row>
       <v-col cols="12" md="8">
         <v-card class="mb-6" variant="elevated">
@@ -62,7 +101,7 @@
                 <v-card
                   variant="outlined"
                   class="h-100 quick-action-card"
-                  @click="showComingSoonNotification"
+                  @click="navigateTo('/settings')"
                   hover
                 >
                   <v-card-item>
@@ -120,6 +159,20 @@
                 Connect Your First Source
               </v-btn>
             </div>
+          </v-card-text>
+        </v-card>
+
+        <!-- Add Analytics Visualization -->
+        <v-card v-if="analyticsStore.metabaseUrl">
+          <v-card-title>Analytics Overview</v-card-title>
+          <v-card-text>
+            <iframe
+              :src="analyticsStore.metabaseUrl"
+              frameborder="0"
+              width="100%"
+              height="350"
+              allowtransparency
+            ></iframe>
           </v-card-text>
         </v-card>
       </v-col>
@@ -232,15 +285,29 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from "vue";
+import { ref, onMounted, computed } from "vue";
 import { useRouter } from "vue-router";
 import PageLayout from "@/components/PageLayout.vue";
 import { notify } from "@/utils/notifications";
 import { airbyteService } from "@/services/airbyteService";
+import { useAnalyticsStore } from "@/stores/analyticsStore";
 
 const router = useRouter();
 const loading = ref(false);
 const sources = ref([]);
+const analyticsStore = useAnalyticsStore();
+
+// Calculate stats from sources and analytics data
+const stats = computed(() => ({
+  totalSources: sources.value.length || 0,
+  activeSources: sources.value.filter((s) => s.status === "active").length || 0,
+  totalRecords:
+    analyticsStore.salesData?.reduce(
+      (acc, curr) => acc + (curr.total_orders || 0),
+      0
+    ) || 0,
+  lastSync: analyticsStore.lastUpdated || new Date().toLocaleString(),
+}));
 
 function navigateTo(path) {
   router.push(path);
@@ -307,6 +374,11 @@ async function loadSources() {
   try {
     const response = await airbyteService.getSources();
     sources.value = response.data || [];
+
+    // Also load analytics data for stats calculation
+    if (!analyticsStore.salesData.length) {
+      await analyticsStore.fetchData();
+    }
   } catch (err) {
     notify.error("Could not load data sources", {
       title: "Error",
@@ -343,5 +415,17 @@ onMounted(() => {
 
 .h-100 {
   height: 100%;
+}
+
+.dashboard-card {
+  background: var(--surface-color) !important;
+  border: 1px solid var(--border-color) !important;
+  transition: all 0.3s ease;
+  color: var(--text-primary-color) !important;
+}
+
+.dashboard-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 25px 0 rgba(0, 0, 0, 0.25);
 }
 </style>

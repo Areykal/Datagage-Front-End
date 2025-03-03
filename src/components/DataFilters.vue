@@ -1,80 +1,65 @@
 <template>
-  <v-card class="filter-card mb-4">
-    <v-card-title>Data Filters</v-card-title>
+  <v-card class="filter-card mb-6" variant="outlined">
+    <v-card-title>
+      <v-icon start class="mr-2">mdi-filter</v-icon>
+      Data Filters
+    </v-card-title>
     <v-card-text>
       <v-row>
-        <v-col cols="12" sm="4">
+        <v-col cols="12" sm="6" md="3">
           <v-select
-            v-model="localFilters.timeRange"
-            label="Time Period"
+            v-model="filters.timeRange"
             :items="timeRangeOptions"
+            label="Time Range"
             variant="outlined"
             density="comfortable"
-          />
+            hide-details
+            prepend-inner-icon="mdi-calendar-range"
+            @update:model-value="handleChange"
+          ></v-select>
         </v-col>
-        <v-col cols="12" sm="4">
+
+        <v-col cols="12" sm="6" md="3">
           <v-select
-            v-model="localFilters.product"
+            v-model="filters.product"
+            :items="productOptions"
             label="Product"
-            :items="['all', 'Product A', 'Product B', 'Product C']"
             variant="outlined"
             density="comfortable"
-          />
+            hide-details
+            prepend-inner-icon="mdi-package-variant"
+            @update:model-value="handleChange"
+          ></v-select>
         </v-col>
-        <v-col cols="12" sm="4">
+
+        <v-col cols="12" sm="6" md="3">
           <v-select
-            v-model="localFilters.customer"
+            v-model="filters.customer"
+            :items="customerOptions"
             label="Customer"
-            :items="['all', 'Customer 1', 'Customer 2', 'Customer 3']"
             variant="outlined"
             density="comfortable"
-          />
-        </v-col>
-      </v-row>
-      <div class="d-flex justify-end mt-2">
-        <v-btn color="primary" @click="applyFilters" :loading="loading">
-          Apply Filters
-        </v-btn>
-      </div>
-    </v-card-text>
-  </v-card>
-
-  <v-card class="mb-6" variant="outlined">
-    <v-card-text>
-      <v-row align="center">
-        <v-col cols="12" md="3">
-          <v-select
-            v-model="selectedPeriod"
-            :items="periodOptions"
-            label="Time Period"
-            variant="outlined"
-            density="compact"
+            hide-details
+            prepend-inner-icon="mdi-account-group"
+            @update:model-value="handleChange"
           ></v-select>
         </v-col>
 
-        <v-col cols="12" md="3">
-          <v-select
-            v-model="selectedSource"
-            :items="sourceOptions"
-            label="Data Source"
-            variant="outlined"
-            density="compact"
-          ></v-select>
-        </v-col>
+        <v-col cols="12" sm="6" md="3" class="d-flex align-center">
+          <v-btn
+            color="primary"
+            variant="text"
+            @click="resetFilters"
+            :disabled="!isFiltered"
+            class="mr-2"
+          >
+            <v-icon start>mdi-filter-remove</v-icon>
+            Reset
+          </v-btn>
 
-        <v-col cols="12" md="3">
-          <v-select
-            v-model="selectedMetric"
-            :items="metricOptions"
-            label="Key Metric"
-            variant="outlined"
-            density="compact"
-          ></v-select>
-        </v-col>
-
-        <v-col cols="12" md="3" class="d-flex align-center">
-          <v-btn color="primary" variant="tonal" class="ml-auto">
-            Apply Filters
+          <v-btn color="primary" @click="applyFilters" :loading="loading">
+            <v-icon start>mdi-filter-check</v-icon>
+            Apply
           </v-btn>
         </v-col>
       </v-row>
@@ -83,69 +68,107 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, watch } from "vue";
+import { ref, computed, watch } from "vue";
 import { useAnalyticsStore } from "@/stores/analyticsStore";
 
-const store = useAnalyticsStore();
-const loading = computed(() => store.loading);
-
-const localFilters = reactive({
-  timeRange: store.timeRange,
-  product: store.product,
-  customer: store.customer,
-});
-
-const timeRangeOptions = [
-  { title: "3 Months", value: 3 },
-  { title: "6 Months", value: 6 },
-  { title: "12 Months", value: 12 },
-  { title: "24 Months", value: 24 },
-];
-
-// Apply filters to store and reload data
-const applyFilters = async () => {
-  await store.updateFilters(localFilters);
-};
-
-// Update local filters when store changes
-watch(
-  () => [store.timeRange, store.product, store.customer],
-  ([newTimeRange, newProduct, newCustomer]) => {
-    localFilters.timeRange = newTimeRange;
-    localFilters.product = newProduct;
-    localFilters.customer = newCustomer;
-  }
-);
+const analyticsStore = useAnalyticsStore();
+const loading = computed(() => analyticsStore.loading);
 
 // Filter options
-const periodOptions = [
-  { title: "Last 7 days", value: "7d" },
-  { title: "Last 30 days", value: "30d" },
-  { title: "Last 90 days", value: "90d" },
-  { title: "Last 12 months", value: "12m" },
+const timeRangeOptions = [
+  { title: "Last 7 days", value: 7 },
+  { title: "Last 30 days", value: 30 },
+  { title: "Last 90 days", value: 90 },
+  { title: "Last 12 months", value: 365 },
+  { title: "All time", value: 0 },
 ];
 
-const sourceOptions = [
-  { title: "All Sources", value: "all" },
-  { title: "MySQL Database", value: "mysql" },
-  { title: "Google Sheets", value: "sheets" },
+const productOptions = [
+  { title: "All Products", value: "all" },
+  { title: "Widgets", value: "widgets" },
+  { title: "Gadgets", value: "gadgets" },
+  { title: "Tools", value: "tools" },
+  { title: "Supplies", value: "supplies" },
 ];
 
-const metricOptions = [
-  { title: "Revenue", value: "revenue" },
-  { title: "Orders", value: "orders" },
-  { title: "Average Order Value", value: "aov" },
+const customerOptions = [
+  { title: "All Customers", value: "all" },
+  { title: "Enterprise", value: "enterprise" },
+  { title: "SMB", value: "smb" },
+  { title: "Individual", value: "individual" },
 ];
 
-// Selected values
-const selectedPeriod = ref("30d");
-const selectedSource = ref("all");
-const selectedMetric = ref("revenue");
+// Filter state
+const filters = ref({
+  timeRange: analyticsStore.timeRange || 30,
+  product: analyticsStore.product || "all",
+  customer: analyticsStore.customer || "all",
+});
+
+// Computed property to check if filters are applied
+const isFiltered = computed(() => {
+  return (
+    filters.value.timeRange !== 30 ||
+    filters.value.product !== "all" ||
+    filters.value.customer !== "all"
+  );
+});
+
+// Handle change event for auto-apply mode
+const handleChange = () => {
+  // If you want filters to auto-apply, uncomment the next line
+  // applyFilters();
+};
+
+// Methods
+const applyFilters = () => {
+  // Update the store with the current filters
+  analyticsStore.timeRange = filters.value.timeRange;
+  analyticsStore.product = filters.value.product;
+  analyticsStore.customer = filters.value.customer;
+
+  // Trigger data refetch with new filters
+  analyticsStore.fetchData(true);
+};
+
+const resetFilters = () => {
+  filters.value = {
+    timeRange: 30,
+    product: "all",
+    customer: "all",
+  };
+  applyFilters();
+};
+
+// Watch for store changes
+watch(
+  () => [
+    analyticsStore.timeRange,
+    analyticsStore.product,
+    analyticsStore.customer,
+  ],
+  ([newTimeRange, newProduct, newCustomer]) => {
+    // Update local filters if they change in the store
+    filters.value = {
+      timeRange: newTimeRange,
+      product: newProduct,
+      customer: newCustomer,
+    };
+  },
+  { immediate: true }
+);
 </script>
 
 <style scoped>
 .filter-card {
-  background: linear-gradient(145deg, var(--dark-surface), #1a1a1a) !important;
-  border: 1px solid var(--dark-border) !important;
+  background: var(--surface-color) !important;
+  border: 1px solid var(--border-color) !important;
+  transition: all 0.3s ease;
+}
+
+@media (max-width: 600px) {
+  .filter-card {
+    padding: 12px;
+  }
 }
 </style>

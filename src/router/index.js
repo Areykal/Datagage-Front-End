@@ -3,7 +3,7 @@ import { auth } from "@/utils/auth";
 import { notify } from "@/utils/notifications";
 
 // Import all pages
-import Dashboard from "@/pages/Dashboard.vue";
+import DashboardPage from "@/pages/DashboardPage.vue";
 import Analytics from "@/pages/Analytics.vue";
 import DataSources from "@/pages/DataSources.vue";
 import LoginPage from "@/pages/LoginPage.vue";
@@ -17,7 +17,7 @@ const routes = [
   {
     path: "/",
     name: "Dashboard",
-    component: Dashboard,
+    component: DashboardPage,
     meta: { requiresAuth: true, title: "Dashboard" },
   },
   {
@@ -87,9 +87,7 @@ router.beforeEach((to, from, next) => {
 
   if (to.matched.some((record) => record.meta.requiresAuth)) {
     if (!isAuthenticated) {
-      notify.warning("Please log in to access this page", {
-        position: "bottom-center",
-      });
+      notify.warning("Please log in to access this page");
       next({
         path: "/login",
         query: { redirect: to.fullPath },

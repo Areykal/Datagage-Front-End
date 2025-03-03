@@ -1,5 +1,5 @@
 <template>
-  <div class="notification-container">
+  <div class="notification-container" aria-live="polite" aria-atomic="true">
     <TransitionGroup name="toast" tag="div">
       <ToastNotification
         v-for="notification in notificationStore.notifications"

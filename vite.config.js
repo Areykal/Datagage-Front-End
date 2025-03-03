@@ -1,26 +1,34 @@
 import { defineConfig } from "vite";
 import vue from "@vitejs/plugin-vue";
-import vuetify from "vite-plugin-vuetify";
-import path from "path";
+import { fileURLToPath, URL } from "url";
 
+// https://vitejs.dev/config/
 export default defineConfig({
-  plugins: [vue(), vuetify({ autoImport: true })],
+  plugins: [vue()],
   resolve: {
     alias: {
-      "@": path.resolve(__dirname, "./src"),
+      "@": fileURLToPath(new URL("./src", import.meta.url)),
     },
   },
-  base: "/",
   server: {
     port: 8080,
+    host: true,
   },
-  css: {
-    preprocessorOptions: {
-      sass: {
-        additionalData: `
-          // Add any global SASS variables or mixins here if needed
-        `,
+  build: {
+    target: "esnext",
+    outDir: "dist",
+    assetsDir: "assets",
+    emptyOutDir: true,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vue: ["vue", "vue-router", "vuetify"],
+          pinia: ["pinia"],
+        },
       },
     },
+  },
+  optimizeDeps: {
+    include: ["vue", "vue-router", "vuetify", "pinia", "axios"],
   },
 });

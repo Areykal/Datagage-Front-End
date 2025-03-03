@@ -2,7 +2,7 @@
   <v-app-bar elevation="1">
     <v-app-bar-title class="ml-2">
       <router-link to="/" class="text-decoration-none">
-        <span class="text-h6 font-weight-bold primary--text">Datagage</span>
+        <Logo />
       </router-link>
     </v-app-bar-title>
 
@@ -14,19 +14,16 @@
       :to="item.path"
       variant="text"
       :active="route.path === item.path"
+      :prepend-icon="item.icon"
     >
       {{ item.title }}
     </v-btn>
 
     <v-menu v-if="user" location="bottom end">
       <template v-slot:activator="{ props }">
-        <v-btn icon v-bind="props">
-          <v-avatar size="36">
-            <v-img
-              :src="user.avatar || 'https://cdn.vuetifyjs.com/images/john.png'"
-            ></v-img>
-          </v-avatar>
-        </v-btn>
+        <div v-bind="props">
+          <Profile :user="user" :showName="false" />
+        </div>
       </template>
       <v-list>
         <v-list-item>
@@ -36,6 +33,11 @@
           <v-list-item-subtitle>{{ user.email }}</v-list-item-subtitle>
         </v-list-item>
         <v-divider></v-divider>
+        <v-list-item
+          prepend-icon="mdi-account"
+          title="Profile"
+          to="/profile"
+        ></v-list-item>
         <v-list-item
           prepend-icon="mdi-cog"
           title="Settings"
@@ -56,6 +58,8 @@ import { ref, computed, onMounted, watch } from "vue";
 import { useUiStore } from "@/stores/uiStore";
 import { auth } from "@/utils/auth";
 import { useRouter, useRoute } from "vue-router";
+import Profile from "@/components/Profile.vue";
+import Logo from "@/components/Logo.vue";
 
 // Use the UI store for state management
 const uiStore = useUiStore();
@@ -107,9 +111,9 @@ onMounted(() => {
 });
 
 const navItems = ref([
-  { title: "Dashboard", path: "/" },
-  { title: "Sources", path: "/sources" },
-  { title: "Analytics", path: "/analytics" },
+  { title: "Dashboard", path: "/", icon: "mdi-view-dashboard" },
+  { title: "Sources", path: "/sources", icon: "mdi-database" },
+  { title: "Analytics", path: "/analytics", icon: "mdi-chart-bar" },
 ]);
 </script>
 
