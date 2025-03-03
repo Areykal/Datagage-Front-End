@@ -1,7 +1,28 @@
 <template>
+<<<<<<< HEAD
   <app-layout>
     <router-view />
   </app-layout>
+=======
+  <v-app>
+    <Navigation />
+    <v-main>
+      <div class="app-container mx-auto px-6">
+        <router-view v-slot="{ Component }">
+          <component :is="Component" />
+        </router-view>
+      </div>
+    </v-main>
+
+    <TransitionGroup name="toast">
+      <ToastNotification
+        v-for="notification in notificationStore.notifications"
+        :key="notification.id"
+        v-bind="notification"
+      />
+    </TransitionGroup>
+  </v-app>
+>>>>>>> 7da8da144b996ef72141b6bb9f0d7734386576ba
 </template>
 
 <script setup>
@@ -9,13 +30,45 @@ import AppLayout from '@/layouts/AppLayout.vue'
 </script>
 
 <style>
+<<<<<<< HEAD
 /* Global styles */
+=======
+.v-application {
+  font-family: "Inter", sans-serif !important;
+  background-color: var(--background-color) !important;
+  color: var(--text-primary-color) !important;
+}
+
+.app-container {
+  max-width: 1440px;
+  min-height: 100vh;
+  padding: clamp(1rem, 2vw, 2rem);
+  margin: 0 auto;
+  width: 100%;
+}
+
+@media (max-width: 600px) {
+  .app-container {
+    padding: 1rem;
+  }
+}
+
+/* Theme variables */
+>>>>>>> 7da8da144b996ef72141b6bb9f0d7734386576ba
 :root {
-  --dark-background: #121212;
-  --dark-surface: #1e1e1e;
-  --dark-border: rgba(255, 255, 255, 0.05);
-  --dark-text-primary: #ffffff;
-  --dark-text-secondary: rgba(255, 255, 255, 0.7);
+  --background-color: #ffffff;
+  --surface-color: #f5f5f5;
+  --text-primary-color: #000000;
+  --text-secondary-color: #555555;
+  --border-color: #dddddd;
+}
+
+[data-theme="dark"] {
+  --background-color: #121212;
+  --surface-color: #1e1e1e;
+  --text-primary-color: #ffffff;
+  --text-secondary-color: rgba(255, 255, 255, 0.7);
+  --border-color: rgba(255, 255, 255, 0.1);
 }
 
 .v-application {

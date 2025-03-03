@@ -1,27 +1,22 @@
 <template>
-  <div class="navigation-container">
-    <v-navigation-drawer
-      v-model="isOpen"
-      :rail="isRail"
-      permanent
-      class="navigation-drawer"
-    >
-      <div class="d-flex align-center pa-4">
-        <v-avatar class="mr-4" color="primary" size="36">
-          <v-img src="/logo.svg" alt="Datagage" v-if="isOpen" />
-          <span v-else>D</span>
-        </v-avatar>
-
-        <div v-if="isOpen" class="text-h6 font-weight-bold">Datagage</div>
-
-        <v-spacer></v-spacer>
-
-        <v-btn icon variant="text" @click.stop="toggleDrawer" color="grey">
-          <v-icon>{{
-            isOpen ? "mdi-chevron-left" : "mdi-chevron-right"
-          }}</v-icon>
-        </v-btn>
+  <v-navigation-drawer
+    permanent
+    :rail="rail"
+    @mouseenter="rail = false"
+    @mouseleave="rail = true"
+    :elevation="0"
+    class="navigation-drawer"
+    width="256"
+    rail-width="75"
+  >
+    <div class="logo-container px-4 py-4 d-flex align-center">
+      <v-avatar color="primary" size="38" class="mr-3 elevation-1">
+        <span class="text-h6 font-weight-bold text-white">D</span>
+      </v-avatar>
+      <div v-if="!rail" class="nav-title text-h6 font-weight-medium">
+        Datagage
       </div>
+    </div>
 
       <v-divider></v-divider>
 
@@ -119,10 +114,17 @@ const navItems = [
 .navigation-drawer {
   background-color: var(--dark-surface) !important;
   border-right: 1px solid var(--dark-border) !important;
-  z-index: 100;
-  display: flex !important; /* Force display */
-  visibility: visible !important;
-  opacity: 1 !important;
+  color: var(--text-primary-color) !important;
+}
+
+.logo-container {
+  min-height: 56px;
+}
+
+.nav-title {
+  background: linear-gradient(45deg, #6366f1, #8b5cf6);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 .nav-item {
