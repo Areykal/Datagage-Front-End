@@ -1,107 +1,88 @@
 <template>
   <div class="page-layout">
-    <div class="page-header">
-      <v-btn
-        v-if="showBack"
-        icon="mdi-arrow-left"
-        variant="text"
-        class="back-button"
-        @click="handleBack"
-      ></v-btn>
-      <div class="header-content">
-        <h1 class="page-title">{{ title }}</h1>
-        <span v-if="subtitle" class="subtitle">{{ subtitle }}</span>
+    <div class="page-header mb-6">
+      <div>
+        <h1 class="text-h4 font-weight-medium mb-2">{{ title }}</h1>
+        <p class="text-subtitle-1 text-medium-emphasis" v-if="subtitle">
+          {{ subtitle }}
+        </p>
       </div>
-      <v-spacer></v-spacer>
-      <div class="actions">
+      <div class="page-actions" v-if="$slots.actions">
         <slot name="actions"></slot>
       </div>
     </div>
 
-    <v-alert
-      v-if="error"
-      type="error"
-      variant="tonal"
-      :text="error"
-      class="mb-4"
-      closable
-    ></v-alert>
-
-    <div v-if="loading" class="d-flex justify-center align-center py-12">
-      <v-progress-circular indeterminate color="primary"></v-progress-circular>
-    </div>
-
-    <slot v-else></slot>
+    <v-fade-transition>
+      <div v-if="loading" class="d-flex justify-center align-center my-8">
+        <v-progress-circular
+          indeterminate
+          color="primary"
+          size="64"
+        ></v-progress-circular>
+      </div>
+      <div v-else-if="error" class="error-container text-center pa-8">
+        <v-icon color="error" size="64" class="mb-4"
+          >mdi-alert-circle-outline</v-icon
+        >
+        <h3 class="text-h5 mb-2">Error Loading Data</h3>
+        <p class="text-medium-emphasis mb-6">{{ error }}</p>
+        <v-btn color="primary" @click="$emit('retry')">Retry</v-btn>
+      </div>
+      <div v-else class="page-content">
+        <slot></slot>
+      </div>
+    </v-fade-transition>
   </div>
 </template>
 
 <script setup>
-import { useRouter } from "vue-router";
-
-const router = useRouter();
-const props = defineProps({
-  title: { type: String, required: true },
-  subtitle: { type: String, default: "" },
-  loading: { type: Boolean, default: false },
-  error: { type: String, default: "" },
-  showBack: { type: Boolean, default: false },
+defineProps({
+  title: {
+    type: String,
+    required: true,
+  },
+  subtitle: {
+    type: String,
+    default: "",
+  },
+  loading: {
+    type: Boolean,
+    default: false,
+  },
+  error: {
+    type: [String, Object, null],
+    default: null,
+  },
 });
 
-const handleBack = () => {
-  router.go(-1); // Use browser's back functionality instead of manual routing
-};
+defineEmits(["retry"]);
 </script>
 
 <style scoped>
 .page-layout {
+  padding-bottom: 2rem;
+  min-height: 100%;
   animation: fadeIn 0.3s ease-out;
-  width: 100%;
 }
 
 .page-header {
   display: flex;
+  justify-content: space-between;
   align-items: center;
-  margin-bottom: clamp(1rem, 3vw, 2rem);
-  gap: 1rem;
   flex-wrap: wrap;
+  gap: 1rem;
 }
 
-.header-content {
-  flex: 1;
-  min-width: 200px;
+.page-content {
+  animation: fadeIn 0.4s ease-out;
 }
 
-.page-title {
-  font-size: clamp(1.5rem, 2.5vw, 2rem);
-  line-height: 1.2;
-  margin-bottom: 0.25rem;
-}
-
-.subtitle {
-  font-size: clamp(0.875rem, 1.5vw, 1rem);
-  opacity: 0.7;
-}
-
-.back-button {
-  margin-right: 0.5rem;
-}
-
-.actions {
-  display: flex;
-  gap: 0.5rem;
-  margin-left: auto;
-}
-
-@media (max-width: 600px) {
-  .page-header {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .actions {
-    width: 100%;
-    justify-content: flex-end;
-  }
+.error-container {
+  background: linear-gradient(145deg, var(--dark-surface), #1a1a1a) !important;
+  border: 1px solid var(--dark-border) !important;
+  border-radius: 8px;
+  max-width: 600px;
+  margin: 0 auto;
 }
 
 @keyframes fadeIn {
@@ -112,6 +93,18 @@ const handleBack = () => {
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+@media (max-width: 600px) {
+  .page-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .page-actions {
+    width: 100%;
+    margin-top: 1rem;
   }
 }
 </style>

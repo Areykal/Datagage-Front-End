@@ -28,10 +28,10 @@
 
 <script setup>
 import { ref, onMounted } from "vue";
-import { useAnalyticsStore } from "@/store/analytics";
+import { useAnalyticsStore } from "@/stores/analyticsStore"; // Fix import path
 import PageLayout from "@/components/PageLayout.vue";
 
-const analytics = useAnalyticsStore;
+const analytics = useAnalyticsStore(); // Call the function
 const months = ref(12);
 const periodOptions = [
   { title: "3 Months", value: 3 },

@@ -1,73 +1,125 @@
 <template>
-  <PageLayout
-    title="Dashboard"
-    subtitle="Overview of your data infrastructure"
-    :loading="loading"
-    :error="error"
-  >
-    <v-row>
-      <!-- Summary Cards -->
-      <v-col cols="12" sm="6" md="3">
-        <v-card class="dashboard-card">
-          <v-card-item>
-            <v-card-title>Total Sources</v-card-title>
-            <div class="text-h4">{{ stats.totalSources || 0 }}</div>
-          </v-card-item>
-        </v-card>
-      </v-col>
+  <ErrorBoundary @retry="handleRetry">
+    <PageLayout
+      title="Dashboard"
+      subtitle="Overview of your data infrastructure"
+      :loading="loading"
+      :error="error"
+    >
+      <!-- Add DataFilters component -->
+      <DataFilters />
 
-      <v-col cols="12" sm="6" md="3">
-        <v-card class="dashboard-card">
-          <v-card-item>
-            <v-card-title>Active Sources</v-card-title>
-            <div class="text-h4">{{ stats.activeSources || 0 }}</div>
-          </v-card-item>
-        </v-card>
-      </v-col>
+      <v-row>
+        <!-- Summary Cards -->
+        <v-col cols="12" sm="6" md="3">
+          <v-card class="dashboard-card">
+            <v-card-item>
+              <v-card-title>Total Sources</v-card-title>
+              <div class="text-h4">{{ stats.totalSources || 0 }}</div>
+            </v-card-item>
+          </v-card>
+        </v-col>
 
-      <v-col cols="12" sm="6" md="3">
-        <v-card class="dashboard-card">
-          <v-card-item>
-            <v-card-title>Total Records</v-card-title>
-            <div class="text-h4">{{ stats.totalRecords || 0 }}</div>
-          </v-card-item>
-        </v-card>
-      </v-col>
+        <v-col cols="12" sm="6" md="3">
+          <v-card class="dashboard-card">
+            <v-card-item>
+              <v-card-title>Active Sources</v-card-title>
+              <div class="text-h4">{{ stats.activeSources || 0 }}</div>
+            </v-card-item>
+          </v-card>
+        </v-col>
 
-      <v-col cols="12" sm="6" md="3">
-        <v-card class="dashboard-card">
-          <v-card-item>
-            <v-card-title>Last Sync</v-card-title>
-            <div class="text-subtitle-1">{{ stats.lastSync || "Never" }}</div>
-          </v-card-item>
-        </v-card>
-      </v-col>
+        <v-col cols="12" sm="6" md="3">
+          <v-card class="dashboard-card">
+            <v-card-item>
+              <v-card-title>Total Records</v-card-title>
+              <div class="text-h4">{{ stats.totalRecords || 0 }}</div>
+            </v-card-item>
+          </v-card>
+        </v-col>
 
-      <!-- Placeholder for future widgets -->
-      <v-col cols="12">
-        <v-card class="dashboard-card">
-          <v-card-title>Recent Activity</v-card-title>
-          <v-card-text>
-            <div class="text-subtitle-1">Coming soon...</div>
-          </v-card-text>
-        </v-card>
-      </v-col>
-    </v-row>
-  </PageLayout>
+        <v-col cols="12" sm="6" md="3">
+          <v-card class="dashboard-card">
+            <v-card-item>
+              <v-card-title>Last Sync</v-card-title>
+              <div class="text-subtitle-1">{{ stats.lastSync || "Never" }}</div>
+            </v-card-item>
+          </v-card>
+        </v-col>
+
+        <!-- Add Metabase visualization -->
+        <v-col cols="12">
+          <v-card class="dashboard-card">
+            <v-card-title>Sales Analytics</v-card-title>
+            <v-card-text>
+              <iframe
+                v-if="store.metabaseUrl"
+                :src="store.metabaseUrl"
+                frameborder="0"
+                width="100%"
+                height="600"
+                allowtransparency
+              ></iframe>
+            </v-card-text>
+          </v-card>
+        </v-col>
+
+        <!-- Add AI Insights -->
+        <v-col cols="12">
+          <v-card class="dashboard-card">
+            <v-card-title>AI Insights</v-card-title>
+            <v-card-text>
+              <div class="text-body-1" v-html="store.aiInsights"></div>
+            </v-card-text>
+          </v-card>
+        </v-col>
+
+        <!-- Placeholder for future widgets -->
+        <v-col cols="12">
+          <v-card class="dashboard-card">
+            <v-card-title>Recent Activity</v-card-title>
+            <v-card-text>
+              <div class="text-subtitle-1">Coming soon...</div>
+            </v-card-text>
+          </v-card>
+        </v-col>
+      </v-row>
+    </PageLayout>
+  </ErrorBoundary>
 </template>
 
 <script setup>
-import { ref, onMounted } from "vue";
+import { onMounted, onUnmounted, computed } from "vue";
+import { useAnalyticsStore } from "@/stores/analyticsStore";
 import PageLayout from "@/components/PageLayout.vue";
+import DataFilters from "@/components/DataFilters.vue";
+import ErrorBoundary from "@/components/ErrorBoundary.vue";
 
-const loading = ref(true);
-const error = ref(null);
-const stats = ref({});
+const store = useAnalyticsStore();
+const { loading, error } = store;
 
-onMounted(() => {
-  // Placeholder for future API integration
-  loading.value = false;
+const stats = computed(() => ({
+  totalSources: store.salesData.length || 0,
+  activeSources: store.salesData.filter((s) => s.total_revenue > 0).length || 0,
+  totalRecords:
+    store.salesData.reduce((acc, curr) => acc + curr.total_orders, 0) || 0,
+  lastSync: new Date().toLocaleString(),
+}));
+
+onMounted(async () => {
+  if (!store.salesData.length) {
+    await store.fetchData();
+  }
 });
+
+onUnmounted(() => {
+  // Clear sensitive data but keep cached results
+  store.$reset();
+});
+
+const handleRetry = async () => {
+  await store.fetchData(true); // Force refresh
+};
 </script>
 
 <style scoped>

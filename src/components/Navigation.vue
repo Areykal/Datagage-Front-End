@@ -1,124 +1,136 @@
+<template>
+  <div class="navigation-container">
+    <v-navigation-drawer
+      v-model="isOpen"
+      :rail="isRail"
+      permanent
+      class="navigation-drawer"
+    >
+      <div class="d-flex align-center pa-4">
+        <v-avatar class="mr-4" color="primary" size="36">
+          <v-img src="/logo.svg" alt="Datagage" v-if="isOpen" />
+          <span v-else>D</span>
+        </v-avatar>
+
+        <div v-if="isOpen" class="text-h6 font-weight-bold">Datagage</div>
+
+        <v-spacer></v-spacer>
+
+        <v-btn icon variant="text" @click.stop="toggleDrawer" color="grey">
+          <v-icon>{{
+            isOpen ? "mdi-chevron-left" : "mdi-chevron-right"
+          }}</v-icon>
+        </v-btn>
+      </div>
+
+      <v-divider></v-divider>
+
+      <v-list density="compact" nav>
+        <v-list-item
+          v-for="item in navItems"
+          :key="item.title"
+          :to="item.to"
+          :prepend-icon="item.icon"
+          :title="isOpen ? item.title : ''"
+          :value="item.title"
+          class="nav-item my-1"
+          rounded="lg"
+        >
+        </v-list-item>
+      </v-list>
+
+      <template v-slot:append>
+        <div class="pa-2">
+          <v-btn
+            v-if="isOpen"
+            block
+            color="primary"
+            to="/sources/new"
+            prepend-icon="mdi-plus"
+          >
+            New Source
+          </v-btn>
+          <v-btn v-else icon color="primary" to="/sources/new">
+            <v-icon>mdi-plus</v-icon>
+          </v-btn>
+        </div>
+      </template>
+    </v-navigation-drawer>
+  </div>
+</template>
+
 <script setup>
-import { ref, watch } from "vue";
-import { useDisplay } from "vuetify";
+import { ref, computed, onMounted, watch } from "vue";
+import { useUiStore } from "@/stores/uiStore";
 
-const display = useDisplay();
-const rail = ref(true);
+// Use the UI store for state management
+const uiStore = useUiStore();
 
-// Remove mobile behavior for now to ensure drawer is always visible
+// Local reactive refs for better control
+const isOpen = ref(true);
+const isRail = computed(() => !isOpen.value);
+
+// Sync with store state
 watch(
-  () => display.mdAndDown.value,
-  (isMobile) => {
-    if (!isMobile) {
-      rail.value = true;
-    }
+  () => uiStore.navDrawerOpen,
+  (newVal) => {
+    isOpen.value = newVal;
   }
 );
 
-const menuItems = [
-  {
-    title: "Dashboard",
-    icon: "mdi-view-dashboard-outline",
-    value: "dashboard",
-    to: "/",
-  },
-  {
-    title: "Data Sources",
-    icon: "mdi-database-outline",
-    value: "sources",
-    to: "/sources",
-  },
-  {
-    title: "Analytics",
-    icon: "mdi-chart-box-outline",
-    value: "analytics",
-    to: "/analytics",
-  },
-  {
-    title: "Settings",
-    icon: "mdi-cog-outline",
-    value: "settings",
-    to: "/settings",
-  },
+watch(isOpen, (newVal) => {
+  uiStore.setNavDrawerOpen(newVal);
+});
+
+// Toggle drawer state with manual control
+const toggleDrawer = () => {
+  isOpen.value = !isOpen.value;
+};
+
+// Initialize from stored value on mount
+onMounted(() => {
+  // Force a re-render by briefly setting to null then to the stored value
+  const storedValue = localStorage.getItem("nav_drawer_state") === "true";
+  isOpen.value = storedValue;
+
+  // Ensure the drawer is visible by forcing permanent attribute
+  setTimeout(() => {
+    const drawer = document.querySelector(".navigation-drawer");
+    if (drawer) {
+      drawer.setAttribute("aria-hidden", "false");
+    }
+  }, 100);
+});
+
+const navItems = [
+  { title: "Dashboard", icon: "mdi-view-dashboard-outline", to: "/" },
+  { title: "Data Sources", icon: "mdi-database-outline", to: "/sources" },
+  { title: "Analytics", icon: "mdi-chart-box-outline", to: "/analytics" },
+  { title: "Settings", icon: "mdi-cog-outline", to: "/settings" },
 ];
 </script>
 
-<template>
-  <v-navigation-drawer
-    permanent
-    :rail="rail"
-    @mouseenter="rail = false"
-    @mouseleave="rail = true"
-    :elevation="0"
-    class="navigation-drawer"
-  >
-    <div class="logo-container px-4 py-4 d-flex align-center">
-      <v-avatar color="primary" size="38" class="mr-3 elevation-1">
-        <span class="text-h6 font-weight-bold text-white">D</span>
-      </v-avatar>
-      <div v-if="!rail" class="nav-title text-h6 font-weight-medium">
-        Datagage
-      </div>
-    </div>
-
-    <v-divider class="my-2"></v-divider>
-
-    <v-list class="px-2">
-      <v-list-item
-        v-for="item in menuItems"
-        :key="item.value"
-        :to="item.to"
-        :value="item.value"
-        :prepend-icon="item.icon"
-        :title="item.title"
-        rounded="lg"
-        class="nav-item mb-1"
-        active-color="primary"
-      >
-        <template v-slot:append v-if="!rail">
-          <v-icon size="18" color="grey" class="nav-arrow">
-            mdi-chevron-right
-          </v-icon>
-        </template>
-      </v-list-item>
-    </v-list>
-  </v-navigation-drawer>
-</template>
-
 <style scoped>
+.navigation-container {
+  position: relative;
+  height: 100%;
+}
+
 .navigation-drawer {
   background-color: var(--dark-surface) !important;
   border-right: 1px solid var(--dark-border) !important;
-}
-
-.logo-container {
-  min-height: 56px;
-}
-
-.nav-title {
-  background: linear-gradient(45deg, #6366f1, #8b5cf6);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+  z-index: 100;
+  display: flex !important; /* Force display */
+  visibility: visible !important;
+  opacity: 1 !important;
 }
 
 .nav-item {
-  transition: all 0.3s ease;
-  margin: 4px 0;
+  transition: all 0.2s ease;
 }
 
 .nav-item:hover {
-  background: rgba(255, 255, 255, 0.05);
-}
-
-.nav-arrow {
-  opacity: 0;
-  transform: translateX(-10px);
-  transition: all 0.3s ease;
-}
-
-.nav-item:hover .nav-arrow {
-  opacity: 1;
-  transform: translateX(0);
+  background-color: rgba(255, 255, 255, 0.05);
 }
 
 .v-list-item--active {
@@ -126,12 +138,6 @@ const menuItems = [
 }
 
 .v-list-item--active .v-icon {
-  color: rgb(99, 102, 241) !important;
-}
-
-.v-list-item--active .nav-arrow {
-  opacity: 1;
-  transform: translateX(0);
   color: rgb(99, 102, 241) !important;
 }
 </style>

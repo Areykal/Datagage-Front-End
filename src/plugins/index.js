@@ -3,23 +3,9 @@
  *
  * Automatically included in `./src/main.js`
  */
-
-// Styles
-import "@mdi/font/css/materialdesignicons.css";
-import "vuetify/styles";
-
-// Plugins
-import { createVuetify } from "vuetify";
-import router from "../router";
-
-const vuetify = createVuetify({
-  theme: {
-    defaultTheme: "dark",
-  },
-});
+import vuetify from "./vuetify";
 
 export function registerPlugins(app) {
-  app.use(vuetify).use(router);
+  // No need to call loadFonts since we're loading them in index.html
+  app.use(vuetify);
 }
-
-export { router };
