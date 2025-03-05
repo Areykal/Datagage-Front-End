@@ -89,7 +89,7 @@
 <script setup>
 import { ref, computed, onMounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { airbyteService } from "@/services/airbyteService";
+import { sourceService } from "@/services/sourceService";
 import PageLayout from "@/components/PageLayout.vue";
 
 const route = useRoute();
@@ -116,7 +116,7 @@ const getFieldIcon = (fieldName) => {
 
 onMounted(async () => {
   try {
-    const typeDetails = await airbyteService.getSourceTypeDetails(
+    const typeDetails = await sourceService.getSourceTypeDetails(
       route.params.sourceType
     );
     sourceType.value = typeDetails;
@@ -135,8 +135,8 @@ onMounted(async () => {
 
 const createSource = async () => {
   try {
-    loading.value = true;
-    await airbyteService.createSource({
+    isSubmitting.value = true;
+    await sourceService.createSource({
       sourceName: formData.value.name,
       sourceType: route.params.sourceType,
       sourceConfig: formData.value,
@@ -146,7 +146,7 @@ const createSource = async () => {
     error.value = "Failed to create source";
     console.error(err);
   } finally {
-    loading.value = false;
+    isSubmitting.value = false;
   }
 };
 

@@ -1,126 +1,146 @@
 import { defineStore } from "pinia";
 import { ref, computed } from "vue";
-import axios from "axios";
+import analyticsService from "@/services/analyticsService";
 import { notify } from "@/utils/notifications";
 
 export const useAnalyticsStore = defineStore("analytics", () => {
   // State
   const salesData = ref([]);
   const aiInsights = ref("");
-  const metabaseUrl = ref(null);
-  const dashboardId = ref(null);
   const loading = ref(false);
   const error = ref(null);
-  const timeRange = ref(12);
-  const product = ref("all");
-  const customer = ref("all");
   const lastUpdated = ref(null);
+  const currentFilters = ref({
+    timeRange: 12,
+    product: "all",
+    customer: "all",
+  });
 
-  // Mock data for demonstration
-  const mockSalesData = [
-    {
-      id: 1,
-      region: "North",
-      product: "Widgets",
-      total_orders: 1245,
-      total_revenue: 124500,
-    },
-    {
-      id: 2,
-      region: "South",
-      product: "Gadgets",
-      total_orders: 876,
-      total_revenue: 87600,
-    },
-    {
-      id: 3,
-      region: "East",
-      product: "Tools",
-      total_orders: 543,
-      total_revenue: 54300,
-    },
-    {
-      id: 4,
-      region: "West",
-      product: "Supplies",
-      total_orders: 1089,
-      total_revenue: 108900,
-    },
-  ];
-
-  // Mock insights for demonstration
-  const mockInsights = `
-    <p><strong>Sales Trend Analysis:</strong> Based on your data, we're seeing a 12% increase in revenue compared to last month.
-    The top-performing product category is "Widgets" in the North region.</p>
-    
-    <p><strong>Recommendation:</strong> Consider increasing your marketing budget for the South region, as it shows high potential for growth
-    with a 25% conversion rate despite lower total sales.</p>
-  `;
+  // Getters
+  const filteredSalesData = computed(() => {
+    return salesData.value || [];
+  });
 
   // Actions
-  const fetchData = async (forceRefresh = false) => {
-    if (salesData.value.length > 0 && !forceRefresh) {
-      return salesData.value;
-    }
-
-    loading.value = true;
-    error.value = null;
-
+  async function fetchSalesData(filters = {}, forceRefresh = false) {
     try {
-      // In a real app, you would fetch from an API
-      // const response = await axios.get('/api/analytics/sales');
-      // salesData.value = response.data;
+      loading.value = true;
+      error.value = null;
 
-      // For demo purposes, use mock data with a delay to simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 800));
-      salesData.value = mockSalesData;
-      aiInsights.value = mockInsights;
+      // Update filters with any new values
+      currentFilters.value = {
+        ...currentFilters.value,
+        ...filters,
+      };
 
-      // Set mock Metabase URL - in a real app this would be a real embedded dashboard URL
-      metabaseUrl.value = "about:blank"; // Replace with real URL when available
+      const { timeRange, product, customer } = currentFilters.value;
 
-      lastUpdated.value = new Date().toLocaleString();
-      notify.success("Analytics data loaded successfully");
+      // Check cache unless force refresh is requested
+      const cacheKey = `sales_${timeRange}_${product}_${customer}`;
+      const cachedData = !forceRefresh && localStorage.getItem(cacheKey);
 
+      if (cachedData) {
+        salesData.value = JSON.parse(cachedData);
+      } else {
+        const data = await analyticsService.getSalesData(
+          timeRange,
+          product,
+          customer
+        );
+        salesData.value = data;
+
+        // Cache the data
+        localStorage.setItem(cacheKey, JSON.stringify(data));
+      }
+
+      lastUpdated.value = new Date().toISOString();
       return salesData.value;
     } catch (err) {
-      console.error("Error fetching analytics data:", err);
-      error.value = err.message || "Failed to load analytics data";
-      notify.error("Failed to load analytics data");
+      error.value = err.message || "Failed to fetch sales data";
+      notify.error(error.value);
       throw err;
     } finally {
       loading.value = false;
     }
-  };
+  }
 
-  const fetchSalesAnalysis = async (months = 12, forceRefresh = false) => {
-    // In a real app, the months parameter would be passed to the API
-    return fetchData(forceRefresh);
-  };
+  async function generateInsights(data = null) {
+    try {
+      loading.value = true;
+      error.value = null;
 
-  // Reset state
-  const $reset = () => {
-    // Don't clear the data, just reset loading and error states
-    loading.value = false;
-    error.value = null;
-  };
+      // Use provided data or current salesData
+      const dataToAnalyze = data || salesData.value;
+
+      if (!dataToAnalyze || dataToAnalyze.length === 0) {
+        aiInsights.value = "No data available to generate insights.";
+        return aiInsights.value;
+      }
+
+      // Include current filters context in the insights generation
+      const filterContext = {
+        timeRange: currentFilters.value.timeRange,
+        product: currentFilters.value.product,
+        customer: currentFilters.value.customer,
+      };
+
+      const insights = await analyticsService.getInsights(
+        dataToAnalyze,
+        filterContext
+      );
+      aiInsights.value = insights;
+
+      return insights;
+    } catch (err) {
+      error.value = err.message || "Failed to generate insights";
+      notify.error(error.value);
+      throw err;
+    } finally {
+      loading.value = false;
+    }
+  }
+
+  async function fetchSalesAnalysis(months = 12, forceRefresh = false) {
+    try {
+      loading.value = true;
+      error.value = null;
+
+      currentFilters.value.timeRange = months;
+
+      // Fetch sales data first with the updated timeRange
+      await fetchSalesData({ timeRange: months }, forceRefresh);
+
+      // Then generate insights based on this data
+      await generateInsights();
+
+      return {
+        salesData: salesData.value,
+        aiInsights: aiInsights.value,
+      };
+    } catch (err) {
+      error.value = err.message || "Failed to fetch analysis";
+      notify.error(error.value);
+      throw err;
+    } finally {
+      loading.value = false;
+    }
+  }
 
   return {
     // State
     salesData,
     aiInsights,
-    metabaseUrl,
-    dashboardId,
     loading,
     error,
-    timeRange,
-    product,
-    customer,
     lastUpdated,
+    currentFilters,
+
+    // Getters
+    filteredSalesData,
 
     // Actions
-    fetchData,
+    fetchSalesData,
+    generateInsights,
     fetchSalesAnalysis,
-    $reset,
   };
 });

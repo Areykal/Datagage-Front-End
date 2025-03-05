@@ -3,7 +3,7 @@ import { auth } from "@/utils/auth";
 
 // Base URL for API calls - replace with actual URL in production
 const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || "https://api.datagage.io";
+  import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
 // Create Axios instance with default config
 const api = axios.create({
@@ -72,98 +72,74 @@ const delay = (ms = 500) => new Promise((resolve) => setTimeout(resolve, ms));
 
 // Airbyte service
 export const airbyteService = {
-  // Get all sources
-  async getSources() {
-    if (import.meta.env.DEV) {
-      // Return mock data in development
-      await delay();
-      return { data: mockSources };
-    }
-
-    return api.get("/sources");
-  },
-
-  // Get a specific source by ID
-  async getSourceDetails(sourceId) {
-    if (import.meta.env.DEV) {
-      await delay();
-      const source = mockSources.find((s) => s.sourceId === sourceId);
-      if (!source) {
-        throw new Error("Source not found");
-      }
-      return source;
-    }
-
-    return api.get(`/sources/${sourceId}`);
-  },
-
-  // Create a new source
-  async createSource(sourceData) {
-    if (import.meta.env.DEV) {
-      await delay();
-      const newSource = {
-        sourceId: Date.now().toString(),
-        status: "active",
-        ...sourceData,
-      };
-      mockSources.push(newSource);
-      return { data: newSource };
-    }
-
-    return api.post("/sources", sourceData);
-  },
-
-  // Update a source
-  async updateSource(sourceId, sourceData) {
-    if (import.meta.env.DEV) {
-      await delay();
-      const sourceIndex = mockSources.findIndex((s) => s.sourceId === sourceId);
-      if (sourceIndex === -1) {
-        throw new Error("Source not found");
-      }
-      mockSources[sourceIndex] = {
-        ...mockSources[sourceIndex],
-        ...sourceData,
-      };
-      return { data: mockSources[sourceIndex] };
-    }
-
-    return api.put(`/sources/${sourceId}`, sourceData);
-  },
-
-  // Delete a source
-  async deleteSource(sourceId) {
-    if (import.meta.env.DEV) {
-      await delay();
-      const sourceIndex = mockSources.findIndex((s) => s.sourceId === sourceId);
-      if (sourceIndex === -1) {
-        throw new Error("Source not found");
-      }
-      mockSources.splice(sourceIndex, 1);
-      return { success: true };
-    }
-
-    return api.delete(`/sources/${sourceId}`);
-  },
-
-  // Get available source types
+  // Source types
   async getSourceTypes() {
-    if (import.meta.env.DEV) {
-      await delay();
-      return {
-        data: [
-          { id: "mysql", name: "MySQL", icon: "mdi-database" },
-          { id: "postgres", name: "PostgreSQL", icon: "mdi-database" },
-          {
-            id: "google-sheets",
-            name: "Google Sheets",
-            icon: "mdi-google-spreadsheet",
-          },
-        ],
-      };
+    const response = await axios.get(`${API_BASE_URL}/airbyte/source-types`);
+    // Extract the source types array from the response
+    if (response.data && response.data.sourceTypes) {
+      return response.data.sourceTypes;
     }
+    return response.data; // If it's already the correct format
+  },
 
-    return api.get("/source-types");
+  async getSourceTypeDetails(sourceType) {
+    const response = await axios.get(
+      `${API_BASE_URL}/airbyte/source-types/${sourceType}`
+    );
+    if (response.data && response.data.typeDetails) {
+      return response.data.typeDetails;
+    }
+    return response.data;
+  },
+
+  // Sources
+  async getSources() {
+    const response = await axios.get(`${API_BASE_URL}/airbyte/sources`);
+    return response.data;
+  },
+
+  async getSourceDetails(sourceId) {
+    const response = await axios.get(
+      `${API_BASE_URL}/airbyte/sources/${sourceId}`
+    );
+    return response.data;
+  },
+
+  async createSource(sourceData) {
+    const response = await axios.post(
+      `${API_BASE_URL}/airbyte/create/sources`,
+      sourceData
+    );
+    return response.data;
+  },
+
+  async deleteSource(sourceId) {
+    const response = await axios.delete(
+      `${API_BASE_URL}/airbyte/sources/${sourceId}`
+    );
+    return response.data;
+  },
+
+  // Destinations
+  getDestinations: async () => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/destinations`);
+      return response.data || [];
+    } catch (error) {
+      console.error("Error fetching destinations:", error);
+      throw error;
+    }
+  },
+
+  // Connections
+  getConnections: async () => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/connections`);
+      return response.data || [];
+    } catch (error) {
+      console.error("Error fetching connections:", error);
+      throw error;
+    }
   },
 };
 

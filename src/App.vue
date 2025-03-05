@@ -33,6 +33,9 @@
         </span>
       </div>
     </v-footer>
+
+    <!-- Notification display component -->
+    <NotificationDisplay />
   </v-app>
 </template>
 
@@ -42,6 +45,10 @@ import { useRoute } from "vue-router";
 import { auth } from "@/utils/auth";
 import AppBar from "@/components/AppBar.vue";
 import MainNavigation from "@/components/MainNavigation.vue";
+import NotificationDisplay from "@/components/NotificationDisplay.vue";
+
+// Log that app is mounting for debugging
+console.log("[App] App component mounting");
 
 // Authentication state
 const isAuthenticated = computed(() => auth.isAuthenticated());

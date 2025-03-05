@@ -13,10 +13,20 @@
           <v-card class="mb-6">
             <v-card-title>Select Source Type</v-card-title>
             <v-card-text>
-              <v-row>
+              <div v-if="sourceTypes.length === 0" class="text-center pa-6">
+                <v-progress-circular
+                  indeterminate
+                  v-if="loading"
+                ></v-progress-circular>
+                <v-alert v-else type="warning" variant="tonal">
+                  No source types available. Please try refreshing the page.
+                </v-alert>
+              </div>
+
+              <v-row v-else>
                 <v-col
                   v-for="type in sourceTypes"
-                  :key="type.id"
+                  :key="type.type"
                   cols="12"
                   sm="6"
                   md="4"
@@ -26,26 +36,41 @@
                   <v-card
                     :class="[
                       'source-type-card',
-                      { selected: sourceType === type.id },
+                      { selected: sourceType === type.type },
                     ]"
-                    @click="selectSourceType(type.id)"
+                    @click="selectSourceType(type.type)"
                     variant="outlined"
                     hover
                   >
                     <v-card-item>
                       <v-avatar
-                        :color="sourceType === type.id ? 'primary' : undefined"
-                        :variant="sourceType === type.id ? 'flat' : 'tonal'"
+                        :color="
+                          sourceType === type.type ? 'primary' : undefined
+                        "
+                        :variant="sourceType === type.type ? 'flat' : 'tonal'"
                         size="48"
                         class="mb-3"
                       >
-                        <v-icon size="24">{{ type.icon }}</v-icon>
+                        <v-icon size="24">{{
+                          getSourceIcon(type.type)
+                        }}</v-icon>
                       </v-avatar>
                       <v-card-title>{{ type.name }}</v-card-title>
+                      <v-card-subtitle v-if="type.description">{{
+                        type.description
+                      }}</v-card-subtitle>
                     </v-card-item>
                   </v-card>
                 </v-col>
               </v-row>
+
+              <!-- Debug info - remove in production -->
+              <div
+                v-if="sourceTypes.length > 0"
+                class="text-caption text-grey mt-4"
+              >
+                Found {{ sourceTypes.length }} source types
+              </div>
             </v-card-text>
           </v-card>
 
@@ -65,21 +90,28 @@
         <!-- Step 2: Configure Connection -->
         <div v-else-if="step === 2" class="fade-in">
           <v-card class="mb-6">
-            <v-card-title>Configure Connection</v-card-title>
+            <v-card-title
+              >Configure
+              {{ getSourceTypeName(sourceType) }} Connection</v-card-title
+            >
             <v-card-text>
               <v-form ref="connectionForm" v-model="formValid">
+                <!-- Source Name (common to all source types) -->
+                <v-row>
+                  <v-col cols="12">
+                    <v-text-field
+                      v-model="connectionConfig.name"
+                      label="Source Name"
+                      placeholder="Give your data source a name"
+                      variant="outlined"
+                      :rules="[(v) => !!v || 'Name is required']"
+                    ></v-text-field>
+                  </v-col>
+                </v-row>
+
                 <!-- MySQL Configuration -->
                 <div v-if="sourceType === 'mysql'">
                   <v-row>
-                    <v-col cols="12" md="6">
-                      <v-text-field
-                        v-model="connectionConfig.name"
-                        label="Source Name"
-                        placeholder="My MySQL Database"
-                        variant="outlined"
-                        :rules="[(v) => !!v || 'Name is required']"
-                      ></v-text-field>
-                    </v-col>
                     <v-col cols="12" md="6">
                       <v-text-field
                         v-model="connectionConfig.host"
@@ -133,15 +165,6 @@
                 <!-- PostgreSQL Configuration -->
                 <div v-else-if="sourceType === 'postgres'">
                   <v-row>
-                    <v-col cols="12" md="6">
-                      <v-text-field
-                        v-model="connectionConfig.name"
-                        label="Source Name"
-                        placeholder="My PostgreSQL Database"
-                        variant="outlined"
-                        :rules="[(v) => !!v || 'Name is required']"
-                      ></v-text-field>
-                    </v-col>
                     <v-col cols="12" md="6">
                       <v-text-field
                         v-model="connectionConfig.host"
@@ -203,17 +226,8 @@
                   <v-row>
                     <v-col cols="12" md="6">
                       <v-text-field
-                        v-model="connectionConfig.name"
-                        label="Source Name"
-                        placeholder="My Google Sheets"
-                        variant="outlined"
-                        :rules="[(v) => !!v || 'Name is required']"
-                      ></v-text-field>
-                    </v-col>
-                    <v-col cols="12" md="6">
-                      <v-text-field
                         v-model="connectionConfig.spreadsheetId"
-                        label="Spreadsheet ID"
+                        label="Spreadsheet ID or URL"
                         placeholder="Find in the URL of your sheet"
                         variant="outlined"
                         :rules="[(v) => !!v || 'Spreadsheet ID is required']"
@@ -227,6 +241,83 @@
                         :rules="[(v) => !!v || 'Credentials are required']"
                         @change="handleCredentialsFile"
                       ></v-file-input>
+                    </v-col>
+                  </v-row>
+                </div>
+
+                <!-- CSV File Configuration -->
+                <div v-else-if="sourceType === 'file'">
+                  <v-row>
+                    <v-col cols="12">
+                      <v-file-input
+                        v-model="connectionConfig.csvFile"
+                        accept=".csv"
+                        label="Upload CSV File"
+                        variant="outlined"
+                        :rules="[(v) => !!v || 'CSV file is required']"
+                      ></v-file-input>
+                    </v-col>
+                    <v-col cols="12" md="6">
+                      <v-text-field
+                        v-model="connectionConfig.datasetName"
+                        label="Dataset Name"
+                        placeholder="Name for this dataset"
+                        variant="outlined"
+                        :rules="[(v) => !!v || 'Dataset name is required']"
+                      ></v-text-field>
+                    </v-col>
+                    <v-col cols="12" md="6">
+                      <v-checkbox
+                        v-model="connectionConfig.hasHeaderRow"
+                        label="First row is header"
+                        hint="Check if the first row contains column names"
+                      ></v-checkbox>
+                    </v-col>
+                  </v-row>
+                </div>
+
+                <!-- Salesforce Configuration -->
+                <div v-else-if="sourceType === 'salesforce'">
+                  <v-row>
+                    <v-col cols="12" md="6">
+                      <v-text-field
+                        v-model="connectionConfig.clientId"
+                        label="Client ID"
+                        variant="outlined"
+                        :rules="[(v) => !!v || 'Client ID is required']"
+                      ></v-text-field>
+                    </v-col>
+                    <v-col cols="12" md="6">
+                      <v-text-field
+                        v-model="connectionConfig.clientSecret"
+                        label="Client Secret"
+                        type="password"
+                        variant="outlined"
+                        :rules="[(v) => !!v || 'Client Secret is required']"
+                      ></v-text-field>
+                    </v-col>
+                    <v-col cols="12">
+                      <v-text-field
+                        v-model="connectionConfig.refreshToken"
+                        label="Refresh Token"
+                        variant="outlined"
+                        :rules="[(v) => !!v || 'Refresh Token is required']"
+                      ></v-text-field>
+                    </v-col>
+                    <v-col cols="12" md="6">
+                      <v-text-field
+                        v-model="connectionConfig.startDate"
+                        label="Start Date"
+                        type="date"
+                        variant="outlined"
+                        :rules="[(v) => !!v || 'Start Date is required']"
+                      ></v-text-field>
+                    </v-col>
+                    <v-col cols="12" md="6">
+                      <v-checkbox
+                        v-model="connectionConfig.isSandbox"
+                        label="Is Sandbox?"
+                      ></v-checkbox>
                     </v-col>
                   </v-row>
                 </div>
@@ -354,7 +445,7 @@
 <script setup>
 import { ref, reactive, computed, onMounted } from "vue";
 import { useRouter } from "vue-router";
-import { airbyteService } from "@/services/airbyteService";
+import { sourceService } from "@/services/sourceService";
 import { notify } from "@/utils/notifications";
 import PageLayout from "@/components/PageLayout.vue";
 
@@ -400,17 +491,50 @@ const connectionConfig = reactive({
   // Google Sheets
   spreadsheetId: "",
   credentialsJson: "",
+  // CSV
+  csvFile: null,
+  datasetName: "",
+  hasHeaderRow: true,
+  // Salesforce
+  clientId: "",
+  clientSecret: "",
+  refreshToken: "",
+  startDate: "",
+  isSandbox: false,
 });
 
 // Helper functions
-function getSourceTypeName(id) {
-  const sourceType = sourceTypes.value.find((type) => type.id === id);
+function getSourceTypeName(typeId) {
+  const sourceType = sourceTypes.value.find((type) => type.type === typeId);
   return sourceType ? sourceType.name : "Unknown";
+}
+
+// Get icon for source type
+function getSourceIcon(type) {
+  const icons = {
+    "google-sheets": "mdi-google-spreadsheet",
+    file: "mdi-file-delimited",
+    mysql: "mdi-database",
+    postgres: "mdi-database",
+    salesforce: "mdi-cloud",
+  };
+  return icons[type] || "mdi-database";
 }
 
 // Event handlers
 function selectSourceType(type) {
   sourceType.value = type;
+
+  // Reset form when changing source type
+  Object.keys(connectionConfig).forEach((key) => {
+    if (key !== "name") {
+      if (typeof connectionConfig[key] === "boolean") {
+        connectionConfig[key] = false;
+      } else {
+        connectionConfig[key] = "";
+      }
+    }
+  });
 
   // Set default values based on source type
   if (type === "mysql") {
@@ -437,6 +561,9 @@ function handleCredentialsFile(file) {
 // Navigation
 function nextStep() {
   if (currentStep.value < steps.length) {
+    if (currentStep.value === 2 && !connectionForm.value?.validate()) {
+      return;
+    }
     currentStep.value++;
   }
 }
@@ -449,13 +576,11 @@ function prevStep() {
 
 // API calls
 async function testConnection() {
-  if (!connectionForm.value.validate()) return;
+  if (!connectionForm.value?.validate()) return;
 
   testing.value = true;
   try {
-    // In a real implementation, this would test the connection
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    notify.success("Connection successful!");
+    await sourceService.testConnection(connectionConfig, sourceType.value);
   } catch (err) {
     notify.error("Connection failed: " + err.message);
   } finally {
@@ -475,12 +600,10 @@ async function saveSource() {
     // Remove name from connection config (it's at the top level)
     delete sourceData.connectionConfiguration.name;
 
-    const result = await airbyteService.createSource(sourceData);
-    notify.success(`Source "${connectionConfig.name}" created successfully!`);
-    router.push(`/sources/${result.data.sourceId}`);
+    const result = await sourceService.createSource(sourceData);
+    router.push(`/sources/${result.data.source.sourceId}`);
   } catch (err) {
     error.value = "Failed to create source: " + err.message;
-    notify.error("Failed to create source");
   } finally {
     saving.value = false;
   }
@@ -490,11 +613,49 @@ async function saveSource() {
 onMounted(async () => {
   loading.value = true;
   try {
-    const response = await airbyteService.getSourceTypes();
-    sourceTypes.value = response.data || [];
+    const types = await sourceService.getSourceTypes();
+    console.log("Loaded source types:", types);
+
+    if (!types || types.length === 0) {
+      throw new Error("No source types returned from API");
+    }
+
+    // Ensure we're assigning an array to the ref
+    sourceTypes.value = Array.isArray(types) ? types : [];
+
+    console.log("Source types after assignment:", sourceTypes.value);
   } catch (err) {
-    error.value = "Failed to load source types";
-    notify.error("Could not load source types");
+    error.value = "Failed to load source types: " + err.message;
+    console.error("Error loading source types:", err);
+
+    // Fallback source types in case of API failure
+    sourceTypes.value = [
+      {
+        type: "mysql",
+        name: "MySQL Database",
+        description: "Connect to MySQL database",
+      },
+      {
+        type: "postgres",
+        name: "PostgreSQL Database",
+        description: "Connect to PostgreSQL database",
+      },
+      {
+        type: "google-sheets",
+        name: "Google Sheets",
+        description: "Import data from Google Spreadsheets",
+      },
+      {
+        type: "file",
+        name: "CSV File",
+        description: "Import data from CSV files",
+      },
+      {
+        type: "salesforce",
+        name: "Salesforce",
+        description: "Import data from Salesforce",
+      },
+    ];
   } finally {
     loading.value = false;
   }

@@ -21,6 +21,8 @@ import * as components from "vuetify/components";
 import * as directives from "vuetify/directives";
 import { aliases, mdi } from "vuetify/iconsets/mdi";
 
+import { setupErrorHandlers } from "./utils/errorHandler.js";
+
 // Configure Vuetify
 const vuetify = createVuetify({
   components,
@@ -71,6 +73,9 @@ app.use(createPinia());
 app.use(router);
 app.use(vuetify);
 app.use(notificationPlugin);
+
+// Set up global error handlers before mounting the app
+setupErrorHandlers();
 
 // Mount app
 app.mount("#app");

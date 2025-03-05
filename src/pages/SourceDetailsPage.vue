@@ -28,7 +28,7 @@
                   size="48"
                   class="mr-3"
                 >
-                  <v-icon size="24">mdi-database-outline</v-icon>
+                  <SafeIcon :icon="getSourceIconSafe()" size="24" />
                 </v-avatar>
                 <div>
                   <div class="text-h6">{{ source.name }}</div>
@@ -147,9 +147,10 @@
 <script setup>
 import { ref, onMounted, computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { airbyteService } from "@/services/airbyteService";
+import { sourceService } from "@/services/sourceService";
 import PageLayout from "@/components/PageLayout.vue";
 import { notify } from "@/utils/notifications";
+import SafeIcon from "@/components/SafeIcon.vue";
 
 const route = useRoute();
 const router = useRouter();
@@ -162,6 +163,24 @@ const syncing = ref(false);
 const deleting = ref(false);
 const deleteDialog = ref(false);
 
+// Source icon mapping - matches the structure from the console output
+const SOURCE_ICONS = {
+  "google-sheets": "mdi-google-spreadsheet",
+  file: "mdi-file-delimited",
+  mysql: "mdi-database",
+  postgres: "mdi-database-outline",
+  salesforce: "mdi-salesforce",
+};
+
+// Safe getter function for source icon
+const getSourceIconSafe = () => {
+  const sourceType = source.value?.sourceType;
+  console.log("Source type for icon:", sourceType);
+  return sourceType && SOURCE_ICONS[sourceType]
+    ? SOURCE_ICONS[sourceType]
+    : "mdi-database-outline";
+};
+
 // Format camelCase or snake_case keys to Title Case
 const formatKey = (key) => {
   return key
@@ -170,17 +189,24 @@ const formatKey = (key) => {
     .replace(/^\w/, (c) => c.toUpperCase());
 };
 
-// Fetch source details
+// Fetch source details with enhanced debugging
 const fetchSource = async () => {
   loading.value = true;
   error.value = null;
 
   try {
-    source.value = await airbyteService.getSourceDetails(sourceId.value);
+    console.log("Fetching source details for ID:", sourceId.value);
+    const response = await sourceService.getSourceDetails(sourceId.value);
+    console.log("Source details response:", response);
+    source.value = response;
+
+    // Check if sourceType exists
+    if (!source.value.sourceType) {
+      console.warn("Source type is missing in the API response");
+    }
   } catch (err) {
     error.value = "Failed to load source details";
-    notify.error("Could not load source details");
-    console.error(err);
+    console.error("Error fetching source details:", err);
   } finally {
     loading.value = false;
   }
@@ -190,11 +216,8 @@ const fetchSource = async () => {
 const syncSource = async () => {
   syncing.value = true;
   try {
-    // Simulated sync action
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    notify.success(`Source ${source.value.name} synced successfully`);
+    await sourceService.syncSource(sourceId.value, source.value.name);
   } catch (err) {
-    notify.error("Failed to sync source");
     console.error(err);
   } finally {
     syncing.value = false;
@@ -213,12 +236,10 @@ const confirmDelete = () => {
 const deleteSource = async () => {
   deleting.value = true;
   try {
-    await airbyteService.deleteSource(sourceId.value);
+    await sourceService.deleteSource(sourceId.value);
     deleteDialog.value = false;
-    notify.success("Source deleted successfully");
     router.push("/sources");
   } catch (err) {
-    notify.error("Failed to delete source");
     console.error(err);
   } finally {
     deleting.value = false;

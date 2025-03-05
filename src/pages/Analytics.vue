@@ -18,17 +18,37 @@
               label="Time Period"
               variant="outlined"
               density="comfortable"
-              @update:model-value="fetchData"
+              @update:model-value="fetchFilteredData"
             ></v-select>
           </v-col>
-          <v-col cols="12" md="8" class="d-flex justify-end">
+          <v-col cols="12" md="3">
+            <v-select
+              v-model="selectedProduct"
+              :items="productOptions"
+              label="Product"
+              variant="outlined"
+              density="comfortable"
+              @update:model-value="fetchFilteredData"
+            ></v-select>
+          </v-col>
+          <v-col cols="12" md="3">
+            <v-select
+              v-model="selectedCustomer"
+              :items="customerOptions"
+              label="Customer"
+              variant="outlined"
+              density="comfortable"
+              @update:model-value="fetchFilteredData"
+            ></v-select>
+          </v-col>
+          <v-col cols="12" md="2" class="d-flex justify-end">
             <v-btn
               color="primary"
               prepend-icon="mdi-refresh"
-              @click="fetchData(true)"
+              @click="fetchFilteredData(true)"
               :loading="loading"
             >
-              Refresh Data
+              Refresh
             </v-btn>
           </v-col>
         </v-row>
@@ -40,8 +60,16 @@
       <v-col cols="12" sm="6" md="3">
         <v-card class="analytics-card">
           <v-card-item>
-            <v-card-title>Total Sources</v-card-title>
-            <div class="text-h4">{{ analytics.salesData?.length || 0 }}</div>
+            <v-card-title>Total Products</v-card-title>
+            <div class="text-h4">
+              {{
+                analytics.salesData?.reduce(
+                  (acc, curr) =>
+                    acc.includes(curr.product) ? acc : [...acc, curr.product],
+                  []
+                ).length || 0
+              }}
+            </div>
           </v-card-item>
         </v-card>
       </v-col>
@@ -49,8 +77,15 @@
       <v-col cols="12" sm="6" md="3">
         <v-card class="analytics-card">
           <v-card-item>
-            <v-card-title>Active Sources</v-card-title>
-            <div class="text-h4">{{ activeSources }}</div>
+            <v-card-title>Total Orders</v-card-title>
+            <div class="text-h4">
+              {{
+                analytics.salesData?.reduce(
+                  (acc, curr) => acc + Number(curr.total_orders),
+                  0
+                ) || 0
+              }}
+            </div>
           </v-card-item>
         </v-card>
       </v-col>
@@ -58,8 +93,14 @@
       <v-col cols="12" sm="6" md="3">
         <v-card class="analytics-card">
           <v-card-item>
-            <v-card-title>Total Records</v-card-title>
-            <div class="text-h4">{{ totalRecords }}</div>
+            <v-card-title>Total Revenue</v-card-title>
+            <div class="text-h4">
+              ${{
+                analytics.salesData
+                  ?.reduce((acc, curr) => acc + Number(curr.total_revenue), 0)
+                  .toLocaleString() || 0
+              }}
+            </div>
           </v-card-item>
         </v-card>
       </v-col>
@@ -67,15 +108,65 @@
       <v-col cols="12" sm="6" md="3">
         <v-card class="analytics-card">
           <v-card-item>
-            <v-card-title>Last Sync</v-card-title>
+            <v-card-title>Last Updated</v-card-title>
             <div class="text-subtitle-1">{{ lastSync }}</div>
           </v-card-item>
         </v-card>
       </v-col>
     </v-row>
 
+    <!-- Product Analytics Component -->
+    <ProductAnalytics
+      :data="analytics.salesData || []"
+      class="mb-6"
+      @generate-product-insights="generateProductInsights"
+    />
+
     <v-row>
       <v-col cols="12">
+        <!-- AI Insights with loading state -->
+        <v-card class="analytics-card mb-6">
+          <v-card-title class="d-flex align-center">
+            <span>AI Insights</span>
+            <v-chip
+              class="ml-2"
+              size="small"
+              color="primary"
+              v-if="insightsLoading"
+              >Analyzing...</v-chip
+            >
+            <v-spacer></v-spacer>
+            <v-btn
+              icon="mdi-refresh"
+              variant="text"
+              @click="refreshInsights"
+              :loading="insightsLoading"
+            >
+              <v-tooltip activator="parent" location="top">
+                Refresh Insights
+              </v-tooltip>
+            </v-btn>
+          </v-card-title>
+
+          <v-card-text>
+            <div v-if="insightsLoading" class="d-flex justify-center my-4">
+              <v-progress-circular
+                indeterminate
+                color="primary"
+              ></v-progress-circular>
+            </div>
+            <div
+              v-else-if="analytics.aiInsights"
+              class="text-body-1 insights-content"
+              v-html="analytics.aiInsights"
+            ></div>
+            <div v-else class="text-body-1 text-center pa-4">
+              No insights available. Click refresh to generate insights for your
+              current data.
+            </div>
+          </v-card-text>
+        </v-card>
+
         <!-- Metabase visualization (if available) -->
         <v-card v-if="analytics.metabaseUrl" class="analytics-card mb-6">
           <v-card-title>Sales Analytics Dashboard</v-card-title>
@@ -90,23 +181,15 @@
           </v-card-text>
         </v-card>
 
-        <!-- AI Insights -->
-        <v-card v-if="analytics.aiInsights" class="analytics-card mb-6">
-          <v-card-title>AI Insights</v-card-title>
-          <v-card-text>
-            <div class="text-body-1" v-html="analytics.aiInsights"></div>
-          </v-card-text>
-        </v-card>
-
         <!-- Data table -->
         <v-card class="analytics-card mb-6">
           <v-card-title class="d-flex align-center">
             <span>Sales Data</span>
             <v-spacer></v-spacer>
             <v-btn icon="mdi-download" variant="text" @click="downloadData">
-              <v-tooltip activator="parent" location="top"
-                >Export Data</v-tooltip
-              >
+              <v-tooltip activator="parent" location="top">
+                Export Data
+              </v-tooltip>
             </v-btn>
           </v-card-title>
 
@@ -128,9 +211,9 @@
               class="d-flex align-center justify-center"
               style="height: 400px"
             >
-              <v-icon size="64" color="primary" class="mr-4"
-                >mdi-chart-box-outline</v-icon
-              >
+              <v-icon size="64" color="primary" class="mr-4">
+                mdi-chart-box-outline
+              </v-icon>
               <div class="text-h6">
                 No data available for the selected filters
               </div>
@@ -143,13 +226,18 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from "vue";
+import { ref, onMounted, computed, watch } from "vue";
 import { useAnalyticsStore } from "@/stores/analyticsStore";
 import PageLayout from "@/components/PageLayout.vue";
 import { notify } from "@/utils/notifications";
+import ProductAnalytics from "@/components/ProductAnalytics.vue";
 
 const analytics = useAnalyticsStore();
 const months = ref(12);
+const selectedProduct = ref("all");
+const selectedCustomer = ref("all");
+const insightsLoading = ref(false);
+
 const periodOptions = [
   { title: "3 Months", value: 3 },
   { title: "6 Months", value: 6 },
@@ -158,28 +246,52 @@ const periodOptions = [
 ];
 
 const tableHeaders = [
-  { title: "Region", key: "region" },
+  { title: "Month", key: "month", align: "start" },
   { title: "Product", key: "product" },
-  { title: "Orders", key: "total_orders" },
+  { title: "Orders", key: "total_orders", align: "end" },
+  { title: "Items Sold", key: "items_sold", align: "end" },
   {
     title: "Revenue",
     key: "total_revenue",
-    format: (val) => `$${val.toLocaleString()}`,
+    align: "end",
+    format: (val) => `$${Number(val).toLocaleString()}`,
+  },
+  { title: "Customers", key: "unique_customers", align: "end" },
+  {
+    title: "Avg Order",
+    key: "avg_order_value",
+    align: "end",
+    format: (val) => `$${Number(val).toLocaleString()}`,
   },
 ];
 
 const loading = computed(() => analytics.loading);
 const error = computed(() => analytics.error);
 
-// Computed statistics
-const activeSources = computed(() => {
-  return analytics.salesData?.filter((s) => s.total_revenue > 0).length || 0;
+// Computed product options from available data
+const productOptions = computed(() => {
+  const products = new Set(["all"]);
+  if (analytics.salesData?.length) {
+    analytics.salesData.forEach((item) => {
+      if (item.product) products.add(item.product);
+    });
+  }
+  return Array.from(products);
 });
 
+// Compute customer options (this would come from actual data in a real app)
+const customerOptions = computed(() => [
+  "all",
+  "Lauren Smith",
+  "John Mason",
+  "Thomas Melton",
+]);
+
+// Computed statistics
 const totalRecords = computed(() => {
   return (
     analytics.salesData?.reduce(
-      (acc, curr) => acc + (curr.total_orders || 0),
+      (acc, curr) => acc + Number(curr.total_orders || 0),
       0
     ) || 0
   );
@@ -189,9 +301,24 @@ const lastSync = computed(() => {
   return analytics.lastUpdated || new Date().toLocaleString();
 });
 
-const fetchData = async (forceRefresh = false) => {
+const fetchFilteredData = async (forceRefresh = false) => {
   try {
-    await analytics.fetchSalesAnalysis(months.value, forceRefresh);
+    // Show loading state
+    loading.value = true;
+
+    // Update filters in the store and fetch data
+    await analytics.fetchSalesData(
+      {
+        timeRange: months.value,
+        product: selectedProduct.value,
+        customer: selectedCustomer.value,
+      },
+      forceRefresh
+    );
+
+    // Generate new insights based on filtered data
+    refreshInsights();
+
     if (forceRefresh) {
       notify.success("Analytics data refreshed");
     }
@@ -201,8 +328,40 @@ const fetchData = async (forceRefresh = false) => {
   }
 };
 
+const refreshInsights = async () => {
+  try {
+    insightsLoading.value = true;
+    await analytics.generateInsights();
+    notify.success("AI insights updated based on current filters");
+  } catch (err) {
+    notify.error("Failed to generate insights");
+    console.error(err);
+  } finally {
+    insightsLoading.value = false;
+  }
+};
+
+const generateProductInsights = async (productData) => {
+  try {
+    insightsLoading.value = true;
+
+    // Generate insights for specific product data
+    const productInsights = await analytics.generateInsights(productData);
+  } catch (err) {
+    notify.error("Failed to generate product insights");
+    console.error(err);
+  } finally {
+    insightsLoading.value = false;
+  }
+};
+
 const downloadData = () => {
   try {
+    if (!analytics.salesData?.length) {
+      notify.error("No data to export");
+      return;
+    }
+
     // Create CSV content
     const headers = Object.keys(analytics.salesData[0]).join(",");
     const rows = analytics.salesData
@@ -229,7 +388,7 @@ const downloadData = () => {
   }
 };
 
-onMounted(() => fetchData());
+onMounted(() => fetchFilteredData());
 </script>
 
 <style scoped>

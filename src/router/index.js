@@ -34,15 +34,16 @@ const routes = [
   },
   {
     path: "/sources/new",
-    name: "NewSource",
+    name: "source-new",
     component: SourceNewPage,
-    meta: { requiresAuth: true, title: "Add New Data Source" },
+    meta: { requiresAuth: true, title: "Add Data Source" },
   },
   {
     path: "/sources/:id",
-    name: "SourceDetails",
+    name: "source-details",
     component: SourceDetailsPage,
-    meta: { requiresAuth: true, title: "Data Source Details" },
+    props: true,
+    meta: { requiresAuth: true, title: "Source Details" },
   },
   {
     path: "/settings",

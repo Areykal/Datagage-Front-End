@@ -1,4 +1,4 @@
-import api from "./api";
+import apiClient from "./apiClient";
 
 export const analyticsService = {
   /**
@@ -15,7 +15,7 @@ export const analyticsService = {
       if (product !== "all") params.append("product", product);
       if (customer !== "all") params.append("customer", customer);
 
-      const response = await api.get(
+      const response = await apiClient.get(
         `/api/analytics/sales?${params.toString()}`
       );
       return response.data;
@@ -30,11 +30,15 @@ export const analyticsService = {
   /**
    * Get AI-generated insights for the sales data
    * @param {Array} data - Sales data array
+   * @param {Object} filterContext - Information about current filters applied
    * @returns {Promise<string>} AI-generated insights
    */
-  async getInsights(data) {
+  async getInsights(data, filterContext = {}) {
     try {
-      const response = await api.post("/api/analytics/insights", { data });
+      const response = await apiClient.post("/api/analytics/insights", {
+        data,
+        filterContext,
+      });
       return response.data;
     } catch (error) {
       console.error("Error generating insights:", error);
@@ -51,7 +55,7 @@ export const analyticsService = {
    */
   async getSalesAnalysis(months = 12) {
     try {
-      const response = await api.get(
+      const response = await apiClient.get(
         `/api/analytics/sales-analysis?months=${months}`
       );
       return response.data;

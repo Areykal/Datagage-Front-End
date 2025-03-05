@@ -131,23 +131,70 @@ function removeNotification(element) {
 }
 
 // Public API
+import { notificationStore } from "@/stores/notification";
+
+// Debug flag - set to true to see notification calls in console
+const DEBUG = true;
+
+/**
+ * Utilities for displaying notifications
+ */
 export const notify = {
-  success(message, options = {}) {
-    return showNotification(message, "success", options);
+  /**
+   * Show a notification message
+   * @param {string} message - Message to display
+   * @param {string} type - Type of notification: 'success', 'error', 'info', 'warning'
+   * @param {number} duration - How long to show the notification in ms
+   */
+  show(message, type = "info", duration = 5000) {
+    if (DEBUG) console.log(`[NOTIFICATION] ${type}: ${message}`);
+    notificationStore.show(message, type, duration);
   },
 
-  error(message, options = {}) {
-    return showNotification(message, "error", options);
+  /**
+   * Show a success notification
+   * @param {string} message - Message to display
+   * @param {number} duration - How long to show the notification in ms
+   */
+  success(message, duration = 5000) {
+    this.show(message, "success", duration);
   },
 
-  warning(message, options = {}) {
-    return showNotification(message, "warning", options);
+  /**
+   * Show an error notification
+   * @param {string} message - Message to display
+   * @param {number} duration - How long to show the notification in ms
+   */
+  error(message, duration = 5000) {
+    this.show(message, "error", duration);
   },
 
-  info(message, options = {}) {
-    return showNotification(message, "info", options);
+  /**
+   * Show an info notification
+   * @param {string} message - Message to display
+   * @param {number} duration - How long to show the notification in ms
+   */
+  info(message, duration = 5000) {
+    this.show(message, "info", duration);
+  },
+
+  /**
+   * Show a warning notification
+   * @param {string} message - Message to display
+   * @param {number} duration - How long to show the notification in ms
+   */
+  warning(message, duration = 5000) {
+    this.show(message, "warning", duration);
   },
 };
+
+// For debugging - log the notification store status
+if (DEBUG) {
+  console.log("[NOTIFICATION] Notification utility loaded");
+  console.log("[NOTIFICATION] Store object:", notificationStore);
+}
+
+export default notify;
 
 // Plugin for Vue
 export const notificationPlugin = {
@@ -155,5 +202,3 @@ export const notificationPlugin = {
     app.config.globalProperties.$notify = notify;
   },
 };
-
-export default notify;

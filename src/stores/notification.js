@@ -1,89 +1,69 @@
-import { defineStore } from "pinia";
-import { ref } from "vue";
+import { reactive } from "vue";
 
-export const useNotificationStore = defineStore("notification", () => {
-  const notifications = ref([]);
-  let nextId = 1;
+// Debug flag - set to true to see notification store events in console
+const DEBUG = true;
 
-  const show = (
-    message,
-    type = "info",
-    timeout = 5000,
-    position = "top-right",
-    title = ""
-  ) => {
-    const id = nextId++;
-    const notification = { id, message, type, timeout, position, title };
-    notifications.value.push(notification);
+// Create a reactive notification store
+export const notificationStore = reactive({
+  notification: null,
+  timeout: null,
 
-    if (timeout) {
-      setTimeout(() => {
-        dismiss(id);
-      }, timeout);
+  show(message, type = "info", duration = 5000) {
+    if (DEBUG)
+      console.log(`[NOTIFICATION STORE] Showing: ${type} - ${message}`);
+
+    this.clear();
+    this.notification = { message, type, timestamp: Date.now() };
+
+    if (duration > 0) {
+      this.timeout = setTimeout(() => {
+        this.clear();
+      }, duration);
     }
 
-    return id;
-  };
+    // Return the notification for chaining if needed
+    return this.notification;
+  },
 
-  const showSuccess = (message, options = {}) => {
-    return show(
-      message,
-      "success",
-      options.timeout || 5000,
-      options.position || "top-right",
-      options.title || ""
-    );
-  };
-
-  const showError = (message, options = {}) => {
-    return show(
-      message,
-      "error",
-      options.timeout || 8000,
-      options.position || "top-right",
-      options.title || "Error"
-    );
-  };
-
-  const showWarning = (message, options = {}) => {
-    return show(
-      message,
-      "warning",
-      options.timeout || 7000,
-      options.position || "top-right",
-      options.title || "Warning"
-    );
-  };
-
-  const showInfo = (message, options = {}) => {
-    return show(
-      message,
-      "info",
-      options.timeout || 5000,
-      options.position || "top-right",
-      options.title || ""
-    );
-  };
-
-  const dismiss = (id) => {
-    const index = notifications.value.findIndex((n) => n.id === id);
-    if (index !== -1) {
-      notifications.value.splice(index, 1);
+  clear() {
+    if (this.timeout) {
+      clearTimeout(this.timeout);
+      this.timeout = null;
     }
-  };
 
-  const clear = () => {
-    notifications.value = [];
-  };
+    if (this.notification) {
+      if (DEBUG) console.log("[NOTIFICATION STORE] Clearing notification");
+      this.notification = null;
+    }
+  },
 
-  return {
-    notifications,
-    show,
-    showSuccess,
-    showError,
-    showWarning,
-    showInfo,
-    dismiss,
-    clear,
-  };
+  // Helper methods for common notification types
+  info(message, duration) {
+    return this.show(message, "info", duration);
+  },
+
+  success(message, duration) {
+    return this.show(message, "success", duration);
+  },
+
+  warning(message, duration) {
+    return this.show(message, "warning", duration);
+  },
+
+  error(message, duration) {
+    return this.show(message, "error", duration);
+  },
 });
+
+// For debugging - confirm the store is created
+if (DEBUG) {
+  console.log("[NOTIFICATION STORE] Store initialized:", notificationStore);
+
+  // Test notification
+  setTimeout(() => {
+    console.log("[NOTIFICATION STORE] Testing notification");
+    notificationStore.info("Notification system test");
+  }, 1000);
+}
+
+export default notificationStore;

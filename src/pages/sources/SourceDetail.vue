@@ -1,8 +1,7 @@
 <script setup>
 import { ref, onMounted, onErrorCaptured } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { airbyteService } from "@/services/airbyteService";
-import { notificationStore } from "@/stores/notification";
+import { sourceService } from "@/services/sourceService";
 import PageLayout from "@/components/PageLayout.vue";
 import SkeletonLoader from "@/components/SkeletonLoader.vue";
 import ConfirmDialog from "@/components/ConfirmDialog.vue";
@@ -22,14 +21,14 @@ const loading = ref(true);
 const error = ref(null);
 const connectionStatus = ref(null);
 const isDeleting = ref(false);
+const isSyncing = ref(false);
 const confirmDialog = ref(null);
 
 const fetchSourceDetails = async () => {
   try {
     loading.value = true;
     const id = props.sourceId || route.params.sourceId;
-    const response = await airbyteService.getSourceDetails(id);
-    source.value = response.data || response;
+    source.value = await sourceService.getSourceDetails(id);
   } catch (err) {
     error.value = "Failed to load source details";
     console.error("Source details error:", err);
@@ -45,15 +44,25 @@ const showDeleteConfirm = () => {
 const deleteSource = async () => {
   try {
     isDeleting.value = true;
-    await airbyteService.deleteSource(route.params.sourceId);
-    notificationStore.show("Source deleted successfully");
+    await sourceService.deleteSource(route.params.sourceId);
     await router.replace({ name: "sources" });
   } catch (err) {
-    notificationStore.show(err.message, "error");
     error.value = err.message;
     console.error("Delete source error:", err);
   } finally {
     isDeleting.value = false;
+  }
+};
+
+const syncSource = async () => {
+  try {
+    isSyncing.value = true;
+    await sourceService.syncSource(source.value.sourceId, source.value.name);
+  } catch (err) {
+    error.value = "Failed to sync source";
+    console.error("Sync error:", err);
+  } finally {
+    isSyncing.value = false;
   }
 };
 
@@ -75,6 +84,17 @@ onMounted(fetchSourceDetails);
       :showBack="true"
     >
       <template #actions>
+        <v-btn
+          color="primary"
+          variant="outlined"
+          class="mr-2"
+          @click="syncSource"
+          :disabled="loading || isSyncing"
+          :loading="isSyncing"
+        >
+          <v-icon start>mdi-sync</v-icon>
+          Sync Now
+        </v-btn>
         <v-btn
           color="error"
           variant="outlined"
